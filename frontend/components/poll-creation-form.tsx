@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Stepper, Step } from "@/components/ui/stepper"
-import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle, Sparkles, Lock, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle, Sparkles, Lock, ChevronLeft, ChevronRight, Send, FileEdit } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -40,6 +41,7 @@ const pollSchema = z.object({
   fundingToken: z.string().optional(),
   rewardAmount: z.coerce.number().min(0).optional(),
   votingType: z.enum(["linear", "quadratic"]),
+  publish: z.boolean(),
 })
 
 type PollFormData = z.infer<typeof pollSchema>
@@ -91,6 +93,7 @@ export function PollCreationForm() {
       options: ["", ""],
       rewardAmount: 0,
       votingType: "linear",
+      publish: true,
     },
   })
 
@@ -100,6 +103,7 @@ export function PollCreationForm() {
   const category = watch("category")
   const votingType = watch("votingType")
   const title = watch("title")
+  const publish = watch("publish")
 
   const isSubmitting = isPending || isConfirming
 
@@ -256,7 +260,7 @@ export function PollCreationForm() {
         return
       }
 
-      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum, votingTypeEnum)
+      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum, votingTypeEnum, data.publish)
 
     } catch (error) {
       console.error("Error creating poll:", error)
@@ -290,6 +294,7 @@ export function PollCreationForm() {
         fundingType: "none",
         options: ["", ""],
         votingType: "linear",
+        publish: true,
       })
       router.push("/dapp")
     }
@@ -656,6 +661,52 @@ export function PollCreationForm() {
                   {fundingType === "self"
                     ? "You'll need to deposit this amount when creating the poll. Rewards are distributed to voters."
                     : "This amount will be requested from the community fund. Poll creation is subject to governance approval."}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Publish Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Publish Settings</CardTitle>
+          <CardDescription>Choose when to make your poll visible to voters</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-start gap-3">
+              {publish ? (
+                <Send className="h-5 w-5 text-primary mt-0.5" />
+              ) : (
+                <FileEdit className="h-5 w-5 text-muted-foreground mt-0.5" />
+              )}
+              <div className="flex-1">
+                <Label htmlFor="publish-toggle" className="font-medium cursor-pointer">
+                  {publish ? "Publish Immediately" : "Save as Draft"}
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {publish
+                    ? "Your poll will be active and visible to voters immediately after creation."
+                    : "Your poll will be saved as a draft. You can publish it later from the Manage page."}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="publish-toggle"
+              checked={publish}
+              onCheckedChange={(checked) => setValue("publish", checked)}
+            />
+          </div>
+
+          {!publish && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800 dark:text-amber-200">Draft Mode</p>
+                <p className="text-amber-700 dark:text-amber-300 mt-1">
+                  Draft polls are only visible to you. The poll timer won&apos;t start until you publish it.
                 </p>
               </div>
             </div>

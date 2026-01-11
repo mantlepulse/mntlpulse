@@ -22,6 +22,7 @@ export const CONTRACT_FUNCTIONS = {
   // Read functions
   GET_POLL: 'getPoll',
   GET_ACTIVE_POLLS: 'getActivePolls',
+  GET_DRAFT_POLLS: 'getDraftPolls',
   GET_POLL_FUNDINGS: 'getPollFundings',
   HAS_USER_VOTED: 'hasUserVoted',
   GET_USER_FUNDING: 'getUserFunding',
@@ -36,6 +37,7 @@ export const CONTRACT_FUNCTIONS = {
   // Write functions
   CREATE_POLL: 'createPoll',
   CREATE_POLL_WITH_VOTING_TYPE: 'createPollWithVotingType',
+  CREATE_POLL_WITH_VOTING_TYPE_AND_PUBLISH: 'createPollWithVotingTypeAndPublish',
   VOTE: 'vote',
   BUY_VOTES: 'buyVotes',
   FUND_POLL_WITH_ETH: 'fundPollWithETH',
@@ -45,6 +47,8 @@ export const CONTRACT_FUNCTIONS = {
   SET_FOR_CLAIMING: 'setForClaiming',
   PAUSE_POLL: 'pausePoll',
   RESUME_POLL: 'resumePoll',
+  PUBLISH_POLL: 'publishPoll',
+  FINALIZE_POLL: 'finalizePoll',
   WHITELIST_TOKEN: 'whitelistToken',
 } as const
 
@@ -75,7 +79,9 @@ export enum PollStatus {
   ACTIVE = 0,        // Accepting votes/funding
   CLOSED = 1,        // Voting ended, awaiting distribution setup
   FOR_CLAIMING = 2,  // Ready for reward distribution
-  PAUSED = 3         // Temporarily suspended
+  PAUSED = 3,        // Temporarily suspended
+  DRAFT = 4,         // Created but not yet published
+  FINALIZED = 5      // All distributions complete, poll archived
 }
 
 export enum VotingType {

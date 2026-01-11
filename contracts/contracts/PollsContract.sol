@@ -31,7 +31,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         ACTIVE,         // 0 - Accepting votes/funding
         CLOSED,         // 1 - Voting ended, awaiting distribution setup
         FOR_CLAIMING,   // 2 - Ready for reward distribution
-        PAUSED          // 3 - Temporarily suspended
+        PAUSED,         // 3 - Temporarily suspended
+        DRAFT,          // 4 - Created but not yet published (was NEW, renamed for clarity)
+        FINALIZED       // 5 - All distributions complete, poll archived
     }
 
     enum VotingType {
@@ -153,6 +155,16 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         uint256 timestamp
     );
 
+    event PollPublished(
+        uint256 indexed pollId,
+        uint256 timestamp
+    );
+
+    event PollFinalized(
+        uint256 indexed pollId,
+        uint256 timestamp
+    );
+
     event VotesBought(
         uint256 indexed pollId,
         address indexed voter,
@@ -199,6 +211,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     /**
      * @dev Internal helper to synchronize isActive with status
      * Ensures backward compatibility by keeping both fields in sync
+     * isActive is true only for ACTIVE status (not DRAFT, PAUSED, CLOSED, etc.)
      */
     function _syncIsActiveWithStatus(uint256 pollId) internal {
         polls[pollId].isActive = (polls[pollId].status == PollStatus.ACTIVE);
@@ -240,7 +253,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address fundingToken,
         FundingType fundingType
     ) external returns (uint256) {
-        return createPollWithVotingType(question, options, duration, fundingToken, fundingType, VotingType.LINEAR);
+        return createPollWithVotingTypeAndPublish(question, options, duration, fundingToken, fundingType, VotingType.LINEAR, true);
     }
 
     function createPollWithVotingType(
@@ -250,6 +263,29 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address fundingToken,
         FundingType fundingType,
         VotingType votingType
+    ) public returns (uint256) {
+        return createPollWithVotingTypeAndPublish(question, options, duration, fundingToken, fundingType, votingType, true);
+    }
+
+    /**
+     * @notice Create a new poll with full control over voting type and publish status
+     * @param question The poll question
+     * @param options Array of voting options
+     * @param duration Poll duration in seconds
+     * @param fundingToken Token address for funding (address(0) for ETH)
+     * @param fundingType Type of funding (NONE, SELF, COMMUNITY)
+     * @param votingType Type of voting (LINEAR or QUADRATIC)
+     * @param publish If true, poll starts as ACTIVE; if false, poll starts as DRAFT
+     * @return pollId The ID of the created poll
+     */
+    function createPollWithVotingTypeAndPublish(
+        string memory question,
+        string[] memory options,
+        uint256 duration,
+        address fundingToken,
+        FundingType fundingType,
+        VotingType votingType,
+        bool publish
     ) public returns (uint256) {
         require(bytes(question).length > 0, "Question cannot be empty");
         require(options.length >= 2, "Poll must have at least 2 options");
@@ -282,16 +318,26 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         newPoll.question = question;
         newPoll.options = options;
         newPoll.votes = new uint256[](options.length);
-        newPoll.endTime = block.timestamp + duration;
-        newPoll.isActive = true;
         newPoll.creator = msg.sender;
         newPoll.totalFunding = 0;
         newPoll.distributionMode = DistributionMode.MANUAL_PULL; // Default mode (backward compatible)
         newPoll.fundingToken = fundingToken;
         newPoll.fundingType = fundingType;
-        newPoll.status = PollStatus.ACTIVE; // Initialize with ACTIVE status
-        newPoll.previousStatus = PollStatus.ACTIVE; // Initialize previousStatus
         newPoll.votingType = votingType; // Set voting type
+
+        if (publish) {
+            // Poll starts as ACTIVE immediately
+            newPoll.endTime = block.timestamp + duration;
+            newPoll.isActive = true;
+            newPoll.status = PollStatus.ACTIVE;
+            newPoll.previousStatus = PollStatus.ACTIVE;
+        } else {
+            // Poll starts as DRAFT - endTime will be set when published
+            newPoll.endTime = duration; // Store duration temporarily, will be converted to endTime when published
+            newPoll.isActive = false;
+            newPoll.status = PollStatus.DRAFT;
+            newPoll.previousStatus = PollStatus.DRAFT;
+        }
 
         emit PollCreated(pollId, msg.sender, question, newPoll.endTime);
         return pollId;
@@ -608,6 +654,77 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         }
         _setStatus(pollId, resumeToStatus);
         emit PollResumed(pollId, block.timestamp);
+    }
+
+    /**
+     * @dev Publish a draft poll to make it active
+     * Can only be called by creator or owner
+     * Only DRAFT polls can be published
+     * The endTime stored during creation is actually the duration, which is now converted to proper endTime
+     */
+    function publishPoll(uint256 pollId) external pollExists(pollId) {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can publish poll"
+        );
+        require(polls[pollId].status == PollStatus.DRAFT, "Only draft polls can be published");
+
+        // Convert stored duration to actual endTime
+        uint256 duration = polls[pollId].endTime; // This was storing duration temporarily
+        require(
+            duration >= MIN_POLL_DURATION && duration <= MAX_POLL_DURATION,
+            "Invalid poll duration"
+        );
+        polls[pollId].endTime = block.timestamp + duration;
+
+        _setStatus(pollId, PollStatus.ACTIVE);
+        emit PollPublished(pollId, block.timestamp);
+    }
+
+    /**
+     * @dev Finalize a poll after all distributions are complete
+     * Can only be called by creator or owner
+     * Poll must be in FOR_CLAIMING status
+     * This is an optional final state indicating all rewards have been distributed
+     */
+    function finalizePoll(uint256 pollId) external pollExists(pollId) {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can finalize poll"
+        );
+        require(
+            polls[pollId].status == PollStatus.FOR_CLAIMING,
+            "Poll must be in FOR_CLAIMING status to finalize"
+        );
+        _setStatus(pollId, PollStatus.FINALIZED);
+        emit PollFinalized(pollId, block.timestamp);
+    }
+
+    /**
+     * @dev Get all draft polls for a creator
+     * @param creator Address of the poll creator
+     * @return Array of poll IDs in DRAFT status created by the given address
+     */
+    function getDraftPolls(address creator) external view returns (uint256[] memory) {
+        uint256 draftCount = 0;
+
+        for (uint256 i = 0; i < nextPollId; i++) {
+            if (polls[i].creator == creator && polls[i].status == PollStatus.DRAFT) {
+                draftCount++;
+            }
+        }
+
+        uint256[] memory draftPolls = new uint256[](draftCount);
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < nextPollId; i++) {
+            if (polls[i].creator == creator && polls[i].status == PollStatus.DRAFT) {
+                draftPolls[index] = i;
+                index++;
+            }
+        }
+
+        return draftPolls;
     }
 
     /**
