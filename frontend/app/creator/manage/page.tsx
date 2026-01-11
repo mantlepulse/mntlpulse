@@ -173,49 +173,32 @@ export default function ManagePollsPage() {
     fetchDisplayTitles()
   }, [myPolls, chainId])
 
-  // Refetch polls when close or distribution mode transaction succeeds
+  // Refetch polls when close transaction succeeds
   useEffect(() => {
     if (isCloseSuccess && closingPollId) {
-      toast.success("Poll closed successfully! The closed poll will appear shortly after indexing.")
-      // Refetch all poll queries to get updated data
-      pollQueries.forEach(query => query.refetch())
-      refetchActivePolls()
+      toast.success("Poll closed successfully!")
       setIsWaitingForSync(true)
 
-      // Poll the subgraph until the closed poll appears (indexing can take 10-60 seconds)
-      const pollIdToFind = closingPollId
-      let attempts = 0
-      const maxAttempts = 12 // Try for up to 60 seconds (12 * 5s)
+      // Wait a moment for the blockchain state to update, then refetch
+      const refetchAfterClose = async () => {
+        // Small delay to ensure blockchain state is updated
+        await new Promise(resolve => setTimeout(resolve, 2000))
 
-      const pollForClosedPoll = async () => {
-        attempts++
-        const result = await refetchClosedPolls()
+        // Refetch all poll queries to get updated isActive status
+        await Promise.all(pollQueries.map(query => query.refetch()))
 
-        // Check if the closed poll is now in the list
-        // The refetch function from Apollo returns ApolloQueryResult
-        const foundPoll = (result as any)?.data?.polls?.some(
-          (p: { pollId: string }) => parseInt(p.pollId, 10) === Number(pollIdToFind)
-        )
+        // Refetch the active polls list
+        await refetchActivePolls()
 
-        if (foundPoll) {
-          toast.success("Closed poll is now visible!")
-          setClosingPollId(null)
-          setIsWaitingForSync(false)
-          return
-        }
+        // Refetch closed polls from contract
+        await refetchClosedPollsContract()
 
-        if (attempts < maxAttempts) {
-          // Retry in 5 seconds
-          setTimeout(pollForClosedPoll, 5000)
-        } else {
-          toast.info("Subgraph is still indexing. The closed poll may take a few more minutes to appear.")
-          setClosingPollId(null)
-          setIsWaitingForSync(false)
-        }
+        setClosingPollId(null)
+        setIsWaitingForSync(false)
+        toast.success("Poll status updated!")
       }
 
-      // Start polling after initial 5 second delay
-      setTimeout(pollForClosedPoll, 5000)
+      refetchAfterClose()
     }
   }, [isCloseSuccess])
 
@@ -525,19 +508,11 @@ export default function ManagePollsPage() {
                   {isWaitingForSync ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Waiting for subgraph to index closed poll...</span>
+                      <span>Refreshing poll data...</span>
                     </>
-                  ) : hasSubgraphError ? (
-                    <span className="text-xs text-red-600">Subgraph error - using contract data</span>
-                  ) : usingContractOnly ? (
-                    <span className="text-xs text-amber-600">
-                      Subgraph returned 0 polls - showing {closedPollsContract.length} from contract
-                    </span>
-                  ) : closedPollsSubgraph.length > 0 ? (
-                    <span className="text-xs text-green-600">
-                      {closedPollsSubgraph.length} from subgraph
-                      {closedPollsContract.length > closedPollsSubgraph.length &&
-                        `, ${closedPollsContract.length - closedPollsSubgraph.length} additional from contract`}
+                  ) : closedPollsContract.length > 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      {closedPollsContract.length} closed poll{closedPollsContract.length !== 1 ? 's' : ''} found
                     </span>
                   ) : null}
                 </div>
@@ -561,7 +536,7 @@ export default function ManagePollsPage() {
                   <p>No closed polls found.</p>
                   {isWaitingForSync && (
                     <p className="text-xs mt-2">
-                      If you just closed a poll, it may take up to a minute for the subgraph to index it.
+                      Refreshing poll data...
                     </p>
                   )}
                 </div>

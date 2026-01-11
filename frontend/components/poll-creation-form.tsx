@@ -87,7 +87,7 @@ export function PollCreationForm() {
       description: "",
       category: "",
       fundingType: "none",
-      fundingToken: "ETH",
+      fundingToken: "PULSE",
       options: ["", ""],
       rewardAmount: 0,
       votingType: "linear",
@@ -640,7 +640,7 @@ export function PollCreationForm() {
           {(fundingType === "self" || fundingType === "community") && (
             <div className="space-y-2">
               <Label htmlFor="rewardAmount">
-                Reward Amount {fundingType === "self" && fundingToken ? `(${fundingToken})` : "(ETH)"}
+                Reward Amount {fundingType === "self" && fundingToken ? `(${fundingToken})` : "(PULSE)"}
               </Label>
               <Input
                 id="rewardAmount"
