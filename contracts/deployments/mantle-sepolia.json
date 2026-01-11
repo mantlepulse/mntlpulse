@@ -7,7 +7,7 @@
     "deploymentTx": "0x2a9380842ff498e3ce30d177221eb14e103e6782af84e30d6fd831df51f6f3a4",
     "network": "mantle-sepolia",
     "chainId": 5003,
-    "verified": false,
+    "verified": true,
     "upgrades": []
   },
   "PulsePollToken": {
@@ -17,7 +17,7 @@
     "deploymentTx": "0x8a8d17007713747e6b7a1628b1fffcaaa134e76529e94aea4d6dcd4406132cef",
     "network": "mantle-sepolia",
     "chainId": 5003,
-    "verified": false
+    "verified": true
   },
   "StakingContract": {
     "proxy": "0x2828b211A6e8c9c4F5736CeB6c67Df1614967d7E",
@@ -27,7 +27,7 @@
     "deploymentTx": "0x1885ac310d0ca0adbe48eb207c0548e5c6251d8669b2d6aa3c1ad0a8df53bed1",
     "network": "mantle-sepolia",
     "chainId": 5003,
-    "verified": false,
+    "verified": true,
     "config": {
       "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
       "minimumStakeForPremium": "10000000000000000000000",
@@ -43,7 +43,7 @@
     "deploymentTx": "0x0f110359f15f134e92c8b8dcd4f0da3059654f506e532038a2ff6d006c1b349c",
     "network": "mantle-sepolia",
     "chainId": 5003,
-    "verified": false,
+    "verified": true,
     "config": {
       "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
       "stakingContract": "0x2828b211A6e8c9c4F5736CeB6c67Df1614967d7E",
@@ -53,5 +53,38 @@
       "lifetimePrice": "50000000000000000000000"
     },
     "upgrades": []
+  },
+  "DirectTokenSale": {
+    "address": "0x1036eC70B447346d555d85D611cd3e7f6B2ECb9A",
+    "deployedAt": "2026-01-11T08:09:49.415Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "verified": true,
+    "config": {
+      "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
+      "usdcToken": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51",
+      "ethUsdPriceFeed": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+      "tokenPriceUSDC": "0.01",
+      "minPurchase": "100",
+      "maxPurchasePerWallet": "50000"
+    }
+  },
+  "MockUSDC": {
+    "address": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51",
+    "deployedAt": "2026-01-11T08:09:49.415Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "mantle-sepolia",
+    "chainId": 5003
+  },
+  "MockV3Aggregator": {
+    "address": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+    "deployedAt": "2026-01-11T08:09:49.415Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "config": {
+      "initialEthPrice": "$3,500"
+    }
   }
 }

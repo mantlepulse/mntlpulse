@@ -2,20 +2,19 @@ import { ethers, network } from "hardhat";
 
 // Token addresses to whitelist
 const TOKENS_TO_WHITELIST = {
-  baseSepolia: {
-    PULSE: "0x19821658D5798976152146d1c1882047670B898c", // Our custom token
-    USDC: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", // Base Sepolia USDC
+  mantleSepolia: {
+    PULSE: "0xa3713739c39419aA1c6daf349dB4342Be59b9142", // PulsePoll Token on Mantle Sepolia
   },
-  base: {
-    PULSE: "0x1b684A60309b0916C77834d62d117d306171FDFE", // PulsePoll Token on Base Mainnet
-    USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // Base Mainnet USDC
+  mantle: {
+    PULSE: "", // PulsePoll Token on Mantle Mainnet (deploy first)
+    USDC: "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9", // Mantle Mainnet USDC
   },
 };
 
 // PollsContract addresses
 const POLLS_CONTRACT_ADDRESSES = {
-  baseSepolia: "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f",
-  base: "0x347523632Ae55D6Da81Da0799f9bd5b3FDd54C6B",
+  mantleSepolia: "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
+  mantle: "", // Deploy first
 };
 
 async function main() {

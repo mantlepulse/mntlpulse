@@ -39,16 +39,13 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: {
-      mantle: process.env.MANTLESCAN_API_KEY || "",
-      mantleSepolia: process.env.MANTLESCAN_API_KEY || "",
-    },
+    apiKey: process.env.MANTLESCAN_API_KEY || "",
     customChains: [
       {
         network: "mantle",
         chainId: 5000,
         urls: {
-          apiURL: "https://api.mantlescan.xyz/api",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=5000",
           browserURL: "https://mantlescan.xyz",
         },
       },
@@ -56,14 +53,14 @@ const config: HardhatUserConfig = {
         network: "mantleSepolia",
         chainId: 5003,
         urls: {
-          apiURL: "https://api-sepolia.mantlescan.xyz/api",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=5003",
           browserURL: "https://sepolia.mantlescan.xyz",
         },
       },
     ],
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
 };
 
