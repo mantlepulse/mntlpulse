@@ -1,0 +1,62 @@
+{
+  "name": "mantlepulse-contracts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network mantleSepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network mantle",
+    "deploy-token:sepolia": "hardhat run scripts/deploy-token.ts --network mantleSepolia",
+    "deploy-token:mainnet": "hardhat run scripts/deploy-token.ts --network mantle",
+    "deploy-direct-sale:sepolia": "hardhat run scripts/deploy-direct-sale.ts --network mantleSepolia",
+    "deploy-direct-sale:mainnet": "hardhat run scripts/deploy-direct-sale.ts --network mantle",
+    "deploy-direct-sale-upgradeable:sepolia": "hardhat run scripts/deploy-direct-sale-upgradeable.ts --network mantleSepolia",
+    "deploy-direct-sale-upgradeable:mainnet": "hardhat run scripts/deploy-direct-sale-upgradeable.ts --network mantle",
+    "fund-direct-sale:sepolia": "hardhat run scripts/fund-direct-sale.ts --network mantleSepolia",
+    "fund-direct-sale:mainnet": "hardhat run scripts/fund-direct-sale.ts --network mantle",
+    "migrate-direct-sale:mainnet": "hardhat run scripts/migrate-direct-sale.ts --network mantle",
+    "migrate-direct-sale:sepolia": "hardhat run scripts/migrate-direct-sale.ts --network mantleSepolia",
+    "complete-migration:mainnet": "hardhat run scripts/complete-migration.ts --network mantle",
+    "whitelist:sepolia": "hardhat run scripts/whitelist-tokens.ts --network mantleSepolia",
+    "whitelist:mainnet": "hardhat run scripts/whitelist-tokens.ts --network mantle",
+    "upgrade:sepolia": "hardhat run scripts/upgrade.ts --network mantleSepolia",
+    "upgrade:mainnet": "hardhat run scripts/upgrade.ts --network mantle",
+    "upgrade-direct-sale:sepolia": "hardhat run scripts/upgrade-direct-sale.ts --network mantleSepolia",
+    "upgrade-direct-sale:mainnet": "hardhat run scripts/upgrade-direct-sale.ts --network mantle",
+    "verify:sepolia": "hardhat verify --network mantleSepolia",
+    "verify:mainnet": "hardhat verify --network mantle",
+    "test:sepolia": "hardhat run scripts/verify.ts --network mantleSepolia",
+    "test:mainnet": "hardhat run scripts/verify.ts --network mantle",
+    "deploy-staking:sepolia": "hardhat run scripts/deploy-staking.ts --network mantleSepolia",
+    "deploy-staking:mainnet": "hardhat run scripts/deploy-staking.ts --network mantle",
+    "deploy-premium:sepolia": "hardhat run scripts/deploy-premium.ts --network mantleSepolia",
+    "deploy-premium:mainnet": "hardhat run scripts/deploy-premium.ts --network mantle",
+    "setup-premium:sepolia": "hardhat run scripts/setup-premium-contracts.ts --network mantleSepolia",
+    "setup-premium:mainnet": "hardhat run scripts/setup-premium-contracts.ts --network mantle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mantlepulse/mantlepulse-contracts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mantlepulse/mantlepulse-contracts/issues"
+  },
+  "homepage": "https://github.com/mantlepulse/mantlepulse-contracts#readme",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@nomicfoundation/hardhat-verify": "^2.1.1",
+    "@openzeppelin/hardhat-upgrades": "^3.9.1",
+    "hardhat": "^2.26.0"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^1.5.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "dotenv": "^17.2.2"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "PollsContract": {
+    "proxy": "0x347523632Ae55D6Da81Da0799f9bd5b3FDd54C6B",
+    "implementation": "0x7119eedad84c6a79ea7ab7cd1ea68fea6e0865ed",
+    "deployedAt": "2025-11-11T02:26:23.859Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x996428fcbc41194d9b5474a0647db512f519b08a5ef0649f5305a05eab4c47eb",
+    "network": "base",
+    "chainId": 8453,
+    "verified": true,
+    "upgrades": [
+      {
+        "implementationAddress": "0x0D68DC1cBa2c1b663f38604D52B293EDcB96654b",
+        "upgradedAt": "2025-11-14T04:57:04.352Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 38153439,
+        "previousImplementation": "0x0D68DC1cBa2c1b663f38604D52B293EDcB96654b"
+      },
+      {
+        "implementationAddress": "0x27B79E7f927f209b58b8484EC389F772656Ec810",
+        "upgradedAt": "2025-11-17T15:34:29.131Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 38302160,
+        "previousImplementation": "0x0D68DC1cBa2c1b663f38604D52B293EDcB96654b"
+      },
+      {
+        "implementationAddress": "0x7119eedad84c6a79ea7ab7cd1ea68fea6e0865ed",
+        "upgradedAt": "2025-12-09T12:41:00.543Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 39247356,
+        "previousImplementation": "0x27B79E7f927f209b58b8484EC389F772656Ec810"
+      }
+    ]
+  },
+  "PulsePollToken": {
+    "address": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+    "deployedAt": "2025-11-11",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x5938ad4bd573a8cd151505588aca999e9ef2a25ce0dbb1c889572da85996df67",
+    "network": "base",
+    "chainId": 8453,
+    "verified": false
+  },
+  "StakingContract": {
+    "proxy": "0xC84377d58747423E1a07505512Adf99A90F86051",
+    "implementation": "0xde45219792494a130c707B426508Af4DAb4B93C8",
+    "deployedAt": "2025-12-09T12:46:57.813Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "base",
+    "chainId": 8453,
+    "verified": true,
+    "config": {
+      "pulseToken": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+      "minimumStakeForPremium": "10000000000000000000000",
+      "rewardRatePerSecond": "100000000000000"
+    }
+  },
+  "PremiumSubscription": {
+    "proxy": "0x69353b25FdAE19d5Bb40D173193AFa34f02da97A",
+    "implementation": "0xDef4BA47F81AfFc6496C60ABf4F9E0DfF14FBa1B",
+    "deployedAt": "2025-12-09T12:48:11.663Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "base",
+    "chainId": 8453,
+    "verified": true,
+    "config": {
+      "pulseToken": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+      "stakingContract": "0xC84377d58747423E1a07505512Adf99A90F86051",
+      "treasury": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+      "monthlyPrice": "1000000000000000000000",
+      "annualPrice": "10000000000000000000000",
+      "lifetimePrice": "50000000000000000000000"
+    }
+  }
+}

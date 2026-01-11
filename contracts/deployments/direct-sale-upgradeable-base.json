@@ -1,0 +1,51 @@
+{
+  "network": {
+    "name": "base",
+    "chainId": 8453
+  },
+  "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+  "timestamp": "2025-12-19T01:45:07.203Z",
+  "contracts": {
+    "DirectTokenSaleProxy": {
+      "address": "0x4e44B73c55B556B9776816F76f1D743e35CBEf7E",
+      "type": "UUPS Proxy"
+    },
+    "DirectTokenSaleImplementation": {
+      "address": "0x3dD8c8ee9C9C0ecf56F38A04377dB33175755059",
+      "type": "Implementation"
+    },
+    "PulseToken": {
+      "address": "0x1b684A60309b0916C77834d62d117d306171FDFE"
+    },
+    "USDCToken": {
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    "ChainlinkETHUSD": {
+      "address": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+    }
+  },
+  "configuration": {
+    "tokenPrice": "0.01 USDC",
+    "swapSpread": "2.5%",
+    "buyPrice": {
+      "usdc": "0.01 USDC per PULSE",
+      "eth": "Dynamic via Chainlink (1 ETH = ETH price × 100 PULSE)"
+    },
+    "sellPrice": {
+      "usdc": "0.00975 USDC per PULSE (2.5% spread)",
+      "eth": "Dynamic via Chainlink (with 2.5% spread)"
+    },
+    "totalSupply": "1,000,000 PULSE",
+    "minPurchase": "100 PULSE",
+    "maxPurchasePerWallet": "50,000 PULSE"
+  },
+  "upgrades": [
+    {
+      "implementationAddress": "0x3dD8c8ee9C9C0ecf56F38A04377dB33175755059",
+      "upgradedAt": "2025-12-19T02:15:11.103Z",
+      "upgradeTx": "N/A",
+      "blockNumber": 39660582,
+      "previousImplementation": "0x3dD8c8ee9C9C0ecf56F38A04377dB33175755059"
+    }
+  ]
+}

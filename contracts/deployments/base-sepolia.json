@@ -1,0 +1,86 @@
+{
+  "PulsePollToken": {
+    "address": "0x19821658D5798976152146d1c1882047670B898c",
+    "deployedAt": "2025-11-01T00:00:00.000Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "N/A",
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "verified": true
+  },
+  "PollsContract": {
+    "proxy": "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f",
+    "implementation": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296",
+    "deployedAt": "2025-11-10T14:40:52.441Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0xcaea56586d18b6e41c4692b0027a0d187b9e39d9fae7e6495dd41dd5a290fcb4",
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "verified": false,
+    "upgrades": [
+      {
+        "implementationAddress": "0xF9b681D8166c79c9Af398515A3C367EdFBCeE13b",
+        "upgradedAt": "2025-11-14T03:27:21.215Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33661276,
+        "previousImplementation": "0xF9b681D8166c79c9Af398515A3C367EdFBCeE13b"
+      },
+      {
+        "implementationAddress": "0x68384C9603294c80f621cFA3e3b96536a9fE97AB",
+        "upgradedAt": "2025-11-14T04:53:03.218Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33663848,
+        "previousImplementation": "0xF9b681D8166c79c9Af398515A3C367EdFBCeE13b"
+      },
+      {
+        "implementationAddress": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296",
+        "upgradedAt": "2025-11-17T15:32:52.258Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33812642,
+        "previousImplementation": "0x68384C9603294c80f621cFA3e3b96536a9fE97AB"
+      },
+      {
+        "implementationAddress": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296",
+        "upgradedAt": "2025-12-08T07:08:12.799Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 34704702,
+        "previousImplementation": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296"
+      }
+    ]
+  },
+  "StakingContract": {
+    "proxy": "0xAc8BA012138c9e8bEdF7BbbeD408105EB195Daaf",
+    "implementation": "0xa4B3164D632698fc1F7FE3e20B35c0b077c96817",
+    "deployedAt": "2025-12-08T08:00:00.000Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x80ba5cd091cd26988ffaf84ecb8fdc1ddd2b6cc859d4ca184e860695f1b32cef",
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "verified": false,
+    "config": {
+      "pulseToken": "0x19821658D5798976152146d1c1882047670B898c",
+      "minimumStakeForPremium": "10000000000000000000000",
+      "rewardRatePerSecond": "100000000000000"
+    },
+    "upgrades": []
+  },
+  "PremiumSubscription": {
+    "proxy": "0xDC6E8482A3292BEd6e86b73B6a39abD60076165F",
+    "implementation": "0xBd2Dd8a7077D88CF32cB3536ee1a14a208B71D84",
+    "deployedAt": "2025-12-08T08:05:00.000Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "N/A",
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "verified": false,
+    "config": {
+      "pulseToken": "0x19821658D5798976152146d1c1882047670B898c",
+      "stakingContract": "0xAc8BA012138c9e8bEdF7BbbeD408105EB195Daaf",
+      "treasury": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+      "monthlyPrice": "1000000000000000000000",
+      "annualPrice": "10000000000000000000000",
+      "lifetimePrice": "50000000000000000000000"
+    },
+    "upgrades": []
+  }
+}

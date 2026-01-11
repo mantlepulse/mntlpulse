@@ -1,0 +1,57 @@
+{
+  "PollsContract": {
+    "proxy": "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
+    "implementation": "0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893",
+    "deployedAt": "2026-01-11T07:30:47.254Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x2a9380842ff498e3ce30d177221eb14e103e6782af84e30d6fd831df51f6f3a4",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "verified": false,
+    "upgrades": []
+  },
+  "PulsePollToken": {
+    "address": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
+    "deployedAt": "2026-01-11",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x8a8d17007713747e6b7a1628b1fffcaaa134e76529e94aea4d6dcd4406132cef",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "verified": false
+  },
+  "StakingContract": {
+    "proxy": "0x2828b211A6e8c9c4F5736CeB6c67Df1614967d7E",
+    "implementation": "0xDb9E7794873d3135Ad4d3349D6e196C09B03FDdb",
+    "deployedAt": "2026-01-11T07:33:03.264Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x1885ac310d0ca0adbe48eb207c0548e5c6251d8669b2d6aa3c1ad0a8df53bed1",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "verified": false,
+    "config": {
+      "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
+      "minimumStakeForPremium": "10000000000000000000000",
+      "rewardRatePerSecond": "100000000000000"
+    },
+    "upgrades": []
+  },
+  "PremiumSubscription": {
+    "proxy": "0x0D68DC1cBa2c1b663f38604D52B293EDcB96654b",
+    "implementation": "0x9DF2A1F47da5F99c096A3ae3B1e801095c37e427",
+    "deployedAt": "2026-01-11T07:33:59.614Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "deploymentTx": "0x0f110359f15f134e92c8b8dcd4f0da3059654f506e532038a2ff6d006c1b349c",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "verified": false,
+    "config": {
+      "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
+      "stakingContract": "0x2828b211A6e8c9c4F5736CeB6c67Df1614967d7E",
+      "treasury": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+      "monthlyPrice": "1000000000000000000000",
+      "annualPrice": "10000000000000000000000",
+      "lifetimePrice": "50000000000000000000000"
+    },
+    "upgrades": []
+  }
+}

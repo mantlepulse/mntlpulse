@@ -1,0 +1,23 @@
+{
+  "network": {
+    "name": "baseSepolia",
+    "chainId": 84532
+  },
+  "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+  "timestamp": "2025-11-07T05:46:44.952Z",
+  "contracts": {
+    "DirectTokenSale": {
+      "address": "0x434d0fDd72AA670a229294E93D0933Ea685802fd",
+      "tokenPrice": "0.01 USDC",
+      "totalSupply": "1,000,000 PULSE",
+      "minPurchase": "100 PULSE",
+      "maxPurchasePerWallet": "50,000 PULSE"
+    },
+    "PulseToken": {
+      "address": "0x19821658D5798976152146d1c1882047670B898c"
+    },
+    "USDCToken": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    }
+  }
+}

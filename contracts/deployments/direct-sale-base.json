@@ -1,0 +1,23 @@
+{
+  "network": {
+    "name": "base",
+    "chainId": 8453
+  },
+  "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+  "timestamp": "2025-12-11T22:55:28.218Z",
+  "contracts": {
+    "DirectTokenSale": {
+      "address": "0xba6Ae648738969A66e7Fc014fc871E41827e7734",
+      "tokenPrice": "0.01 USDC",
+      "totalSupply": "1,000,000 PULSE",
+      "minPurchase": "100 PULSE",
+      "maxPurchasePerWallet": "50,000 PULSE"
+    },
+    "PulseToken": {
+      "address": "0x1b684A60309b0916C77834d62d117d306171FDFE"
+    },
+    "USDCToken": {
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    }
+  }
+}
