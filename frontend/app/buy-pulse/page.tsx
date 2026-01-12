@@ -281,7 +281,7 @@ export default function BuyPulsePage() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            DirectTokenSale contract not deployed on this network. Please switch to Base Sepolia or deploy the contract first.
+            DirectTokenSale contract not deployed on this network. Please switch to Mantle Sepolia or deploy the contract first.
           </AlertDescription>
         </Alert>
       )}

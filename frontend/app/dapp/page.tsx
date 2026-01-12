@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import { useVote, usePollsContractAddress, useNextPollId } from "@/lib/contracts/polls-contract-utils"
 import { toast } from "sonner"
 import { useAccount, useChainId, useSwitchChain } from "wagmi"
-import { baseSepolia } from "wagmi/chains"
+import { mantleSepoliaTestnet } from "wagmi/chains"
 import { usePollsData } from "@/hooks/use-polls-data"
 import { useDataSource } from "@/contexts/data-source-context"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
@@ -55,7 +55,7 @@ export default function DappPage() {
   } = usePollsData({ pageSize: 6 })
 
   // Network info for users
-  const networkName = chainId === 8453 ? "Base Mainnet" : chainId === 84532 ? "Base Sepolia" : "Unknown Network"
+  const networkName = chainId === 5000 ? "Mantle Mainnet" : chainId === 5003 ? "Mantle Sepolia" : "Unknown Network"
   const hasContractOnNetwork = contractAddress && contractAddress !== "0x0000000000000000000000000000000000000000"
 
   // Handle successful vote confirmation
@@ -222,16 +222,16 @@ export default function DappPage() {
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     <span className="text-sm">
-                      Contract not deployed on {networkName}. Please switch to Base Sepolia.
+                      Contract not deployed on {networkName}. Please switch to Mantle Sepolia.
                     </span>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-amber-600 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                    onClick={() => switchChain({ chainId: baseSepolia.id })}
+                    onClick={() => switchChain({ chainId: mantleSepoliaTestnet.id })}
                   >
-                    Switch to Base Sepolia
+                    Switch to Mantle Sepolia
                   </Button>
                 </div>
               )}
