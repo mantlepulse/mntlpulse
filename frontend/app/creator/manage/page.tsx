@@ -7,7 +7,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useAccount, useChainId } from "wagmi"
-import { AlertCircle, Plus, LayoutGrid, Table, Archive, RefreshCw, Loader2 } from "lucide-react"
+import { AlertCircle, Plus, LayoutGrid, Table, Archive, RefreshCw, Loader2, FileEdit } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
 import {
@@ -17,7 +17,10 @@ import {
   useSetDistributionMode,
   useWithdrawFunds,
   useDistributeRewards,
+  useDraftPolls,
+  usePublishPoll,
 } from "@/lib/contracts/polls-contract-utils"
+import { PollStatus } from "@/lib/contracts/polls-contract"
 import { toast } from "sonner"
 import { ManagePollsTab } from "@/components/creator/manage-polls-tab"
 import { CreatorBreadcrumb } from "@/components/creator/creator-breadcrumb"
@@ -46,6 +49,8 @@ export default function ManagePollsPage() {
   const { setDistributionMode, isSuccess: isDistributionModeSuccess } = useSetDistributionMode()
   const { withdrawFunds, isSuccess: isWithdrawSuccess } = useWithdrawFunds()
   const { distributeRewards } = useDistributeRewards()
+  const { publishPoll, isSuccess: isPublishSuccess, isConfirming: isPublishConfirming } = usePublishPoll()
+  const { data: draftPollIds, refetch: refetchDraftPolls } = useDraftPolls(address)
   const addPollToProject = useAddPollToProject()
 
   // Fetch closed polls from subgraph (primary source)
@@ -123,7 +128,7 @@ export default function ManagePollsPage() {
         const pollData = pollQueries[index]
         if (!pollData.data) return null
 
-        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType] = pollData.data
+        const [id, question, options, votes, endTime, isActive, creator, totalFunding, distributionMode, fundingToken, fundingType, status, previousStatus, votingType, totalVotesBought] = pollData.data
 
         // Only include polls created by current user
         if (creator.toLowerCase() !== address.toLowerCase()) return null
@@ -135,12 +140,14 @@ export default function ManagePollsPage() {
           id,
           question,
           isActive,
+          status: status as PollStatus,
           totalVotes: votes.reduce((sum: bigint, vote: bigint) => sum + vote, BigInt(0)),
           totalFunding,
           endTime,
           distributionMode: distributionMode as 0 | 1 | 2, // From contract
           fundingToken,
           fundingTokenSymbol,
+          votingType,
           options: options.map((text: string, index: number) => ({
             text,
             votes: votes[index],
@@ -310,6 +317,26 @@ export default function ManagePollsPage() {
     }
   }
 
+  const handlePublishPoll = async (pollId: bigint) => {
+    try {
+      await publishPoll(Number(pollId))
+      toast.success("Poll publish transaction submitted. Waiting for confirmation...")
+    } catch (error) {
+      console.error("Publish poll failed:", error)
+      toast.error("Failed to publish poll")
+    }
+  }
+
+  // Refetch when a poll is published
+  useEffect(() => {
+    if (isPublishSuccess) {
+      toast.success("Poll published successfully!")
+      refetchDraftPolls()
+      refetchActivePolls()
+      pollQueries.forEach(query => query.refetch())
+    }
+  }, [isPublishSuccess])
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
 
@@ -406,9 +433,18 @@ export default function ManagePollsPage() {
                 <TabsTrigger value="active" className="gap-2">
                   <LayoutGrid className="h-4 w-4" />
                   Active Polls
-                  {myPolls.length > 0 && (
+                  {myPolls.filter(p => p.status === PollStatus.ACTIVE).length > 0 && (
                     <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                      {myPolls.length}
+                      {myPolls.filter(p => p.status === PollStatus.ACTIVE).length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="drafts" className="gap-2">
+                  <FileEdit className="h-4 w-4" />
+                  Drafts
+                  {(draftPollIds?.length ?? 0) > 0 && (
+                    <span className="ml-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-600">
+                      {draftPollIds?.length}
                     </span>
                   )}
                 </TabsTrigger>
@@ -497,6 +533,60 @@ export default function ManagePollsPage() {
                   onDistributeRewards={handleDistributeRewards}
                   onClosePoll={handleClosePoll}
                 />
+              )}
+            </TabsContent>
+
+            {/* Drafts Tab */}
+            <TabsContent value="drafts" className="mt-0">
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground">
+                  Draft polls are not visible to voters. Publish them when ready to start accepting votes.
+                </p>
+              </div>
+              {(!draftPollIds || draftPollIds.length === 0) ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileEdit className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No draft polls found.</p>
+                  <p className="text-sm mt-2">
+                    Create a poll with the Publish toggle turned off to save it as a draft.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {draftPollIds.map((pollId: bigint) => (
+                    <div key={pollId.toString()} className="p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">Poll #{pollId.toString()}</span>
+                        <span className="px-2 py-1 text-xs rounded-full bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200">
+                          Draft
+                        </span>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          size="sm"
+                          onClick={() => handlePublishPoll(pollId)}
+                          disabled={isPublishConfirming}
+                        >
+                          {isPublishConfirming ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Publishing...
+                            </>
+                          ) : (
+                            'Publish Poll'
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dapp/poll/${pollId}`)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </TabsContent>
 

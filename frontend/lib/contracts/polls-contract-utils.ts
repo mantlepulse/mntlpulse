@@ -137,28 +137,19 @@ export const useCreatePoll = () => {
     durationInHours: number,
     fundingToken: Address,
     fundingType: FundingType,
-    votingType: VotingType = VotingType.LINEAR
+    votingType: VotingType = VotingType.LINEAR,
+    publish: boolean = true // New parameter: if true, poll starts as ACTIVE; if false, starts as DRAFT
   ) => {
     if (!contractAddress) return
 
     const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
 
-    // Use createPollWithVotingType if votingType is specified (non-linear)
-    // Otherwise use the simpler createPoll function
-    if (votingType !== VotingType.LINEAR) {
-      return writeContract({
-        address: contractAddress,
-        abi: POLLS_CONTRACT_ABI,
-        functionName: CONTRACT_FUNCTIONS.CREATE_POLL_WITH_VOTING_TYPE,
-        args: [question, options, durationInSeconds, fundingToken, fundingType, votingType],
-      })
-    }
-
+    // Always use createPollWithVotingTypeAndPublish for full control
     return writeContract({
       address: contractAddress,
       abi: POLLS_CONTRACT_ABI,
-      functionName: CONTRACT_FUNCTIONS.CREATE_POLL,
-      args: [question, options, durationInSeconds, fundingToken, fundingType],
+      functionName: CONTRACT_FUNCTIONS.CREATE_POLL_WITH_VOTING_TYPE_AND_PUBLISH,
+      args: [question, options, durationInSeconds, fundingToken, fundingType, votingType, publish],
     })
   }
 
@@ -609,6 +600,81 @@ export const useResumePoll = () => {
     isSuccess,
     error,
   }
+}
+
+// Hook to publish a draft poll (DRAFT -> ACTIVE)
+export const usePublishPoll = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const publishPoll = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.PUBLISH_POLL,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    publishPoll,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to finalize a poll (FOR_CLAIMING -> FINALIZED)
+export const useFinalizePoll = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const finalizePoll = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.FINALIZE_POLL,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    finalizePoll,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to get draft polls for a creator
+export const useDraftPolls = (creatorAddress?: string) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress ?? undefined,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_DRAFT_POLLS,
+    args: creatorAddress ? [creatorAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!contractAddress && !!creatorAddress,
+    },
+  })
 }
 
 // ============ Quadratic Voting Hooks ============
