@@ -57,8 +57,8 @@ export default function UpgradePage() {
   const { buyWithUSDC, isPending: isBuying, isConfirming: isBuyConfirming, isSuccess: isBuySuccess } = useBuyWithUSDC()
   const { approveUSDC, isPending: isApproving, isConfirming: isApproveConfirming, isSuccess: isApproveSuccess } = useApproveUSDC()
 
-  // Check if on testnet (Base Sepolia)
-  const isTestnet = chainId === 84532
+  // Check if on testnet (Mantle Sepolia)
+  const isTestnet = chainId === 5003
 
   // Get minimum tier price (monthly) to check if user has enough PULSE
   const monthlyPrice = tierPrices[SubscriptionTier.MONTHLY]
@@ -204,8 +204,8 @@ export default function UpgradePage() {
         <Alert className="mb-6 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700 dark:text-amber-300">
-            <strong>Testnet Mode:</strong> SideShift bridging is not available on Base Sepolia testnet.
-            Please switch to Base Mainnet to use the bridge feature, or obtain testnet PULSE tokens from a faucet.
+            <strong>Testnet Mode:</strong> SideShift bridging is not available on Mantle Sepolia testnet.
+            Please switch to Mantle Mainnet to use the bridge feature, or obtain testnet PULSE tokens from a faucet.
           </AlertDescription>
         </Alert>
       )}
@@ -220,7 +220,7 @@ export default function UpgradePage() {
                 Your Balances
               </CardTitle>
               <CardDescription>
-                Your current token balances on {isTestnet ? "Base Sepolia" : "Base"}
+                Your current token balances on {isTestnet ? "Mantle Sepolia" : "Mantle"}
               </CardDescription>
             </CardHeader>
             <CardContent>
