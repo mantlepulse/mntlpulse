@@ -92,6 +92,13 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     address public platformTreasury; // Where platform fees are sent
     uint256 public constant MAX_PLATFORM_FEE = 2000; // Max 20% fee
 
+    // Poll funding metadata for refund/breakdown tracking (added in upgrade)
+    mapping(uint256 => uint256) public pollExpectedResponses;
+    mapping(uint256 => uint256) public pollRewardPerResponse;
+    mapping(uint256 => uint256) public pollDistributedAmount;
+    mapping(uint256 => uint256) public pollClaimDeadline;
+    mapping(uint256 => uint256) public pollVoterCount;
+
     event PollCreated(
         uint256 indexed pollId,
         address indexed creator,
@@ -185,6 +192,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     event PlatformFeeUpdated(uint256 oldFee, uint256 newFee);
     event PlatformTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event PlatformFeePaid(uint256 indexed pollId, address token, uint256 amount, address treasury);
+
+    // Refund/donation events
+    event DonatedToTreasury(uint256 indexed pollId, address token, uint256 amount);
+    event ClaimDeadlineSet(uint256 indexed pollId, uint256 deadline);
 
     modifier pollExists(uint256 pollId) {
         require(pollId < nextPollId, "Poll does not exist");
@@ -361,6 +372,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
      * @param votingType Type of voting (LINEAR or QUADRATIC)
      * @param publish If true, poll starts as ACTIVE; if false, poll starts as DRAFT
      * @param fundingAmount Total amount to fund (including platform fee)
+     * @param expectedResponses Expected number of voters (for refund calculations)
+     * @param rewardPerResponse Reward per voter (for refund calculations)
      * @return pollId The ID of the created poll
      */
     function createPollWithFundingAndPublish(
@@ -371,7 +384,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         FundingType fundingType,
         VotingType votingType,
         bool publish,
-        uint256 fundingAmount
+        uint256 fundingAmount,
+        uint256 expectedResponses,
+        uint256 rewardPerResponse
     ) external payable nonReentrant returns (uint256) {
         // Create the poll first
         uint256 pollId = createPollWithVotingTypeAndPublish(
@@ -383,6 +398,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             votingType,
             publish
         );
+
+        // Store expected responses and reward per response for refund calculations
+        pollExpectedResponses[pollId] = expectedResponses;
+        pollRewardPerResponse[pollId] = rewardPerResponse;
 
         // Handle funding if amount > 0
         if (fundingAmount > 0) {
@@ -444,6 +463,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
 
         polls[pollId].hasVoted[msg.sender] = true;
         polls[pollId].votes[optionIndex]++;
+        pollVoterCount[pollId]++;
 
         emit Voted(pollId, msg.sender, optionIndex);
     }
@@ -478,8 +498,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         poll.votes[optionIndex] += numVotes;
         poll.totalVotesBought += numVotes;
 
-        // Mark user as having voted (for UI purposes)
-        poll.hasVoted[msg.sender] = true;
+        // Mark user as having voted (for UI purposes) and track voter count
+        if (!poll.hasVoted[msg.sender]) {
+            poll.hasVoted[msg.sender] = true;
+            pollVoterCount[pollId]++;
+        }
 
         emit VotesBought(pollId, msg.sender, optionIndex, numVotes, cost, block.timestamp);
     }
@@ -700,15 +723,19 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address[] calldata recipients,
         uint256[] calldata amounts
     ) private {
+        uint256 totalDistributed = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
             if (amounts[i] == 0) continue;
 
             require(pollTokenBalances[pollId][token] >= amounts[i], "Insufficient balance for distribution");
             pollTokenBalances[pollId][token] -= amounts[i];
+            totalDistributed += amounts[i];
 
             _transferFunds(recipients[i], token, amounts[i]);
             emit RewardDistributed(pollId, recipients[i], amounts[i], token, block.timestamp);
         }
+        // Track total distributed amount
+        pollDistributedAmount[pollId] += totalDistributed;
     }
 
     function _transferFunds(address recipient, address token, uint256 amount) private {
@@ -822,6 +849,105 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         );
         _setStatus(pollId, PollStatus.FINALIZED);
         emit PollFinalized(pollId, block.timestamp);
+    }
+
+    // ============ Refund & Donation Functions ============
+
+    /**
+     * @notice Set a claim deadline for a poll
+     * @param pollId The poll ID
+     * @param deadline Timestamp after which unclaimed funds can be withdrawn/donated
+     */
+    function setClaimDeadline(uint256 pollId, uint256 deadline) external pollExists(pollId) {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can set deadline"
+        );
+        require(deadline > block.timestamp, "Deadline must be in future");
+        pollClaimDeadline[pollId] = deadline;
+        emit ClaimDeadlineSet(pollId, deadline);
+    }
+
+    /**
+     * @notice Check if the claim period has expired for a poll
+     * @param pollId The poll ID
+     * @return True if claim period has expired, false otherwise
+     */
+    function isClaimPeriodExpired(uint256 pollId) public view pollExists(pollId) returns (bool) {
+        uint256 deadline = pollClaimDeadline[pollId];
+        if (deadline == 0) return false; // No deadline set
+        return block.timestamp > deadline;
+    }
+
+    /**
+     * @notice Donate remaining poll funds to the platform treasury
+     * @param pollId The poll ID
+     * @param tokens Array of token addresses to donate (use address(0) for ETH)
+     */
+    function donateToTreasury(uint256 pollId, address[] calldata tokens)
+        external
+        pollExists(pollId)
+        nonReentrant
+    {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can donate"
+        );
+        require(
+            block.timestamp >= polls[pollId].endTime,
+            "Poll must be ended to donate"
+        );
+        require(platformTreasury != address(0), "Treasury not set");
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 balance = pollTokenBalances[pollId][tokens[i]];
+            if (balance > 0) {
+                pollTokenBalances[pollId][tokens[i]] = 0;
+
+                if (tokens[i] == address(0)) {
+                    (bool success, ) = platformTreasury.call{value: balance}("");
+                    require(success, "ETH transfer failed");
+                } else {
+                    IERC20(tokens[i]).safeTransfer(platformTreasury, balance);
+                }
+
+                emit DonatedToTreasury(pollId, tokens[i], balance);
+            }
+        }
+    }
+
+    /**
+     * @notice Get detailed funding breakdown for a poll
+     * @param pollId The poll ID
+     * @return totalFunded Total amount funded to the poll
+     * @return expectedDistribution Expected distribution based on expectedResponses × rewardPerResponse
+     * @return actualParticipants Number of actual voters
+     * @return distributed Total amount already distributed
+     * @return remaining Remaining balance available for withdrawal/donation
+     * @return claimDeadline Claim deadline timestamp (0 if not set)
+     * @return claimPeriodExpired Whether the claim period has expired
+     */
+    function getPollFundingBreakdown(uint256 pollId)
+        external
+        view
+        pollExists(pollId)
+        returns (
+            uint256 totalFunded,
+            uint256 expectedDistribution,
+            uint256 actualParticipants,
+            uint256 distributed,
+            uint256 remaining,
+            uint256 claimDeadline,
+            bool claimPeriodExpired
+        )
+    {
+        totalFunded = polls[pollId].totalFunding;
+        expectedDistribution = pollExpectedResponses[pollId] * pollRewardPerResponse[pollId];
+        actualParticipants = pollVoterCount[pollId];
+        distributed = pollDistributedAmount[pollId];
+        remaining = pollTokenBalances[pollId][polls[pollId].fundingToken];
+        claimDeadline = pollClaimDeadline[pollId];
+        claimPeriodExpired = isClaimPeriodExpired(pollId);
     }
 
     /**

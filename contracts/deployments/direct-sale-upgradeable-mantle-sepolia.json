@@ -1,0 +1,42 @@
+{
+  "network": {
+    "name": "mantleSepolia",
+    "chainId": 5003
+  },
+  "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+  "timestamp": "2026-01-12T23:23:53.150Z",
+  "contracts": {
+    "DirectTokenSaleProxy": {
+      "address": "0xA6C63C79F9A9B841e4357736cE746564A9b7F70f",
+      "type": "UUPS Proxy"
+    },
+    "DirectTokenSaleImplementation": {
+      "address": "0xC0659A5a75906B5B9bb9f9150F6267A4EaaFA2B9",
+      "type": "Implementation"
+    },
+    "PulseToken": {
+      "address": "0xa3713739c39419aA1c6daf349dB4342Be59b9142"
+    },
+    "USDCToken": {
+      "address": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51"
+    },
+    "ChainlinkETHUSD": {
+      "address": "0x1b684A60309b0916C77834d62d117d306171FDFE"
+    }
+  },
+  "configuration": {
+    "tokenPrice": "0.01 USDC",
+    "swapSpread": "2.5%",
+    "buyPrice": {
+      "usdc": "0.01 USDC per PULSE",
+      "eth": "Dynamic via Chainlink (1 ETH = ETH price × 100 PULSE)"
+    },
+    "sellPrice": {
+      "usdc": "0.00975 USDC per PULSE (2.5% spread)",
+      "eth": "Dynamic via Chainlink (with 2.5% spread)"
+    },
+    "totalSupply": "1,000,000 PULSE",
+    "minPurchase": "100 PULSE",
+    "maxPurchasePerWallet": "50,000 PULSE"
+  }
+}

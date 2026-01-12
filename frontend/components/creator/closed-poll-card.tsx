@@ -6,7 +6,7 @@
 "use client"
 
 import { useState } from "react"
-import { Clock, Wallet, ExternalLink } from "lucide-react"
+import { Clock, Wallet, ExternalLink, Gift, Timer, ChevronDown, ChevronUp, Info } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { TOKEN_INFO } from "@/lib/contracts/token-config"
@@ -22,22 +22,43 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { CreatorPoll } from "@/hooks/use-creator-dashboard-data"
+import { usePollFundingBreakdown } from "@/lib/contracts/polls-contract-utils"
 
 interface ClosedPollCardProps {
   poll: CreatorPoll
   chainId: number
   onWithdrawFunds: (pollId: bigint, recipient: string, tokens: string[]) => Promise<void>
+  onDonateToTreasury?: (pollId: bigint, tokens: string[]) => Promise<void>
+  onSetClaimDeadline?: (pollId: bigint, deadline: bigint) => Promise<void>
 }
 
 export function ClosedPollCard({
   poll,
   chainId,
   onWithdrawFunds,
+  onDonateToTreasury,
+  onSetClaimDeadline,
 }: ClosedPollCardProps) {
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
+  const [isDonateDialogOpen, setIsDonateDialogOpen] = useState(false)
+  const [isGracePeriodDialogOpen, setIsGracePeriodDialogOpen] = useState(false)
   const [recipient, setRecipient] = useState("")
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [isDonating, setIsDonating] = useState(false)
+  const [isSettingGracePeriod, setIsSettingGracePeriod] = useState(false)
+  const [gracePeriodDays, setGracePeriodDays] = useState(30)
+  const [showBreakdown, setShowBreakdown] = useState(false)
+
+  // Fetch funding breakdown from contract
+  const { data: fundingBreakdown, isLoading: isBreakdownLoading } = usePollFundingBreakdown(poll.pollId)
 
   const endDate = new Date(poll.endTime * 1000)
   const now = new Date()
@@ -49,12 +70,63 @@ export function ClosedPollCard({
   const hasFunds = fundingAmount > 0
   const canWithdraw = hasFunds && hasEnded
 
+  // Parse funding breakdown
+  const breakdown = fundingBreakdown ? {
+    totalFunded: Number(fundingBreakdown.totalFunded) / Math.pow(10, decimals),
+    expectedDistribution: Number(fundingBreakdown.expectedDistribution) / Math.pow(10, decimals),
+    actualParticipants: Number(fundingBreakdown.actualParticipants),
+    distributed: Number(fundingBreakdown.distributed) / Math.pow(10, decimals),
+    remaining: Number(fundingBreakdown.remaining) / Math.pow(10, decimals),
+    claimDeadline: fundingBreakdown.claimDeadline > 0n ? new Date(Number(fundingBreakdown.claimDeadline) * 1000) : null,
+    claimPeriodExpired: fundingBreakdown.claimPeriodExpired,
+  } : null
+
+  // Calculate distribution progress percentage
+  const distributionProgress = breakdown && breakdown.expectedDistribution > 0
+    ? Math.min(100, (breakdown.distributed / breakdown.expectedDistribution) * 100)
+    : 0
+
   // Get status badge
   const getStatusBadge = () => {
+    if (breakdown?.claimPeriodExpired) {
+      return <Badge variant="destructive">Grace Period Expired</Badge>
+    }
     if (poll.status === 'for_claiming') {
       return <Badge variant="default" className="bg-amber-500">Pending Claims</Badge>
     }
     return <Badge variant="secondary">Closed</Badge>
+  }
+
+  // Get zero address for token operations
+  const zeroAddress = "0x0000000000000000000000000000000000000000"
+  const tokenToUse = poll.fundingToken || zeroAddress
+
+  const handleDonateToTreasury = async () => {
+    if (!onDonateToTreasury) return
+    setIsDonating(true)
+    try {
+      await onDonateToTreasury(BigInt(poll.pollId), [tokenToUse])
+      setIsDonateDialogOpen(false)
+    } catch (error) {
+      console.error("Donate to treasury failed:", error)
+    } finally {
+      setIsDonating(false)
+    }
+  }
+
+  const handleSetGracePeriod = async () => {
+    if (!onSetClaimDeadline) return
+    setIsSettingGracePeriod(true)
+    try {
+      // Calculate deadline timestamp (current time + days in seconds)
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + gracePeriodDays * 24 * 60 * 60)
+      await onSetClaimDeadline(BigInt(poll.pollId), deadline)
+      setIsGracePeriodDialogOpen(false)
+    } catch (error) {
+      console.error("Set grace period failed:", error)
+    } finally {
+      setIsSettingGracePeriod(false)
+    }
   }
 
   const handleWithdraw = async () => {
@@ -62,12 +134,7 @@ export function ClosedPollCard({
 
     setIsWithdrawing(true)
     try {
-      // Use the funding token address
-      // For ETH, fundingToken is address(0) = "0x0000000000000000000000000000000000000000"
-      // We always need to pass the token in the array
-      const zeroAddress = "0x0000000000000000000000000000000000000000"
-      const tokenToWithdraw = poll.fundingToken || zeroAddress
-      await onWithdrawFunds(BigInt(poll.pollId), recipient, [tokenToWithdraw])
+      await onWithdrawFunds(BigInt(poll.pollId), recipient, [tokenToUse])
       setIsWithdrawDialogOpen(false)
       setRecipient("")
     } catch (error) {
@@ -126,6 +193,86 @@ export function ClosedPollCard({
             </div>
           </div>
 
+          {/* Funding Breakdown Section */}
+          {hasFunds && breakdown && (
+            <div className="border rounded-lg p-3 space-y-2">
+              <button
+                className="w-full flex items-center justify-between text-sm font-medium"
+                onClick={() => setShowBreakdown(!showBreakdown)}
+              >
+                <span className="flex items-center gap-2">
+                  Funding Summary
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Breakdown of poll funds and distribution</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </span>
+                {showBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {showBreakdown && (
+                <div className="space-y-3 pt-2">
+                  {/* Distribution Progress */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Distribution Progress</span>
+                      <span>{distributionProgress.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={distributionProgress} className="h-2" />
+                  </div>
+
+                  {/* Breakdown Details */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Total Funded</div>
+                      <div className="font-medium">{breakdown.totalFunded.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Expected Distribution</div>
+                      <div className="font-medium">{breakdown.expectedDistribution.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Actual Participants</div>
+                      <div className="font-medium">{breakdown.actualParticipants}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Distributed</div>
+                      <div className="font-medium">{breakdown.distributed.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                    </div>
+                  </div>
+
+                  {/* Refundable Highlight */}
+                  <div className="bg-muted/50 rounded p-2 flex items-center justify-between">
+                    <span className="text-sm font-medium">Refundable</span>
+                    <span className="text-sm font-semibold text-green-600">
+                      {breakdown.remaining.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                    </span>
+                  </div>
+
+                  {/* Claim Deadline */}
+                  {breakdown.claimDeadline && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                      {breakdown.claimPeriodExpired ? (
+                        <span className="text-red-500">Grace period expired</span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Claim deadline: {breakdown.claimDeadline.toLocaleDateString()} at {breakdown.claimDeadline.toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Info Row */}
           <div className="flex items-center justify-between text-sm border-t pt-2">
             <div className="text-muted-foreground">
@@ -137,25 +284,49 @@ export function ClosedPollCard({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-1">
-            <Button variant="outline" size="sm" className="flex-1 h-8" asChild>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button variant="outline" size="sm" className="h-8" asChild>
               <Link href={`/dapp/poll/${poll.pollId}`}>
                 <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                View Results
+                View
               </Link>
             </Button>
             {hasFunds && (
-              <Button
-                variant={canWithdraw ? "default" : "secondary"}
-                size="sm"
-                className="flex-1 h-8"
-                onClick={() => setIsWithdrawDialogOpen(true)}
-                disabled={!canWithdraw}
-                title={!hasEnded ? `Withdrawal available after ${endDate.toLocaleString()}` : undefined}
-              >
-                <Wallet className="h-3.5 w-3.5 mr-2" />
-                {canWithdraw ? "Withdraw Funds" : "Locked"}
-              </Button>
+              <>
+                <Button
+                  variant={canWithdraw ? "default" : "secondary"}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setIsWithdrawDialogOpen(true)}
+                  disabled={!canWithdraw}
+                  title={!hasEnded ? `Withdrawal available after ${endDate.toLocaleString()}` : undefined}
+                >
+                  <Wallet className="h-3.5 w-3.5 mr-2" />
+                  Withdraw
+                </Button>
+                {onDonateToTreasury && canWithdraw && breakdown && breakdown.remaining > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setIsDonateDialogOpen(true)}
+                  >
+                    <Gift className="h-3.5 w-3.5 mr-2" />
+                    Donate
+                  </Button>
+                )}
+                {onSetClaimDeadline && canWithdraw && !breakdown?.claimDeadline && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setIsGracePeriodDialogOpen(true)}
+                  >
+                    <Timer className="h-3.5 w-3.5 mr-2" />
+                    Set Grace Period
+                  </Button>
+                )}
+              </>
             )}
           </div>
           {hasFunds && !hasEnded && (
@@ -211,6 +382,117 @@ export function ClosedPollCard({
               disabled={!recipient || isWithdrawing}
             >
               {isWithdrawing ? "Withdrawing..." : "Withdraw"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Donate to Treasury Dialog */}
+      <Dialog open={isDonateDialogOpen} onOpenChange={setIsDonateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Donate to Community Treasury</DialogTitle>
+            <DialogDescription>
+              Donate remaining poll funds to the community treasury to support the platform.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="text-sm text-muted-foreground">Amount to Donate</div>
+              <div className="text-lg font-semibold text-green-600">
+                {breakdown?.remaining.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                This action is irreversible. The funds will be transferred to the platform treasury and cannot be recovered.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDonateDialogOpen(false)}
+              disabled={isDonating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDonateToTreasury}
+              disabled={isDonating}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isDonating ? "Donating..." : "Confirm Donation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Grace Period Dialog */}
+      <Dialog open={isGracePeriodDialogOpen} onOpenChange={setIsGracePeriodDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Claim Grace Period</DialogTitle>
+            <DialogDescription>
+              Set a deadline for participants to claim their rewards. After this deadline, you can withdraw any unclaimed funds.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <Label>Select Grace Period</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[7, 14, 30].map((days) => (
+                  <Button
+                    key={days}
+                    variant={gracePeriodDays === days ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setGracePeriodDays(days)}
+                  >
+                    {days} days
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Label htmlFor="custom-days" className="whitespace-nowrap">Custom:</Label>
+                <Input
+                  id="custom-days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={gracePeriodDays}
+                  onChange={(e) => setGracePeriodDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">days</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="text-sm text-muted-foreground">Deadline will be set to</div>
+              <div className="text-sm font-medium">
+                {new Date(Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000).toLocaleDateString()} at{' '}
+                {new Date(Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000).toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsGracePeriodDialogOpen(false)}
+              disabled={isSettingGracePeriod}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSetGracePeriod}
+              disabled={isSettingGracePeriod}
+            >
+              {isSettingGracePeriod ? "Setting..." : "Set Grace Period"}
             </Button>
           </DialogFooter>
         </DialogContent>

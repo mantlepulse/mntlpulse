@@ -36,6 +36,14 @@ export const CONTRACT_FUNCTIONS = {
   PLATFORM_FEE_PERCENT: 'platformFeePercent',
   PLATFORM_TREASURY: 'platformTreasury',
   CALCULATE_PLATFORM_FEE: 'calculatePlatformFee',
+  // Refund system
+  GET_POLL_FUNDING_BREAKDOWN: 'getPollFundingBreakdown',
+  IS_CLAIM_PERIOD_EXPIRED: 'isClaimPeriodExpired',
+  POLL_EXPECTED_RESPONSES: 'pollExpectedResponses',
+  POLL_REWARD_PER_RESPONSE: 'pollRewardPerResponse',
+  POLL_DISTRIBUTED_AMOUNT: 'pollDistributedAmount',
+  POLL_CLAIM_DEADLINE: 'pollClaimDeadline',
+  POLL_VOTER_COUNT: 'pollVoterCount',
 
   // Write functions
   CREATE_POLL: 'createPoll',
@@ -56,6 +64,9 @@ export const CONTRACT_FUNCTIONS = {
   WHITELIST_TOKEN: 'whitelistToken',
   SET_PLATFORM_FEE: 'setPlatformFee',
   SET_PLATFORM_TREASURY: 'setPlatformTreasury',
+  // Refund system
+  DONATE_TO_TREASURY: 'donateToTreasury',
+  SET_CLAIM_DEADLINE: 'setClaimDeadline',
 } as const
 
 // Event names for listening to contract events
@@ -66,6 +77,9 @@ export const CONTRACT_EVENTS = {
   TOKEN_WHITELISTED: 'TokenWhitelisted',
   FUNDS_WITHDRAWN: 'FundsWithdrawn',
   VOTES_BOUGHT: 'VotesBought',
+  // Refund system
+  DONATED_TO_TREASURY: 'DonatedToTreasury',
+  CLAIM_DEADLINE_SET: 'ClaimDeadlineSet',
 } as const
 
 // Enums based on the smart contract
@@ -119,6 +133,16 @@ export interface Funding {
   amount: bigint
   funder: Address
   timestamp: bigint
+}
+
+export interface PollFundingBreakdown {
+  totalFunded: bigint
+  expectedDistribution: bigint
+  actualParticipants: bigint
+  distributed: bigint
+  remaining: bigint
+  claimDeadline: bigint
+  claimPeriodExpired: boolean
 }
 
 // Duration constants from contract

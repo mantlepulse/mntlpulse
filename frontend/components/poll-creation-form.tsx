@@ -20,7 +20,7 @@ import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle, Sparkles
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { useCreatePoll, useCreatePollWithFunding, usePlatformFee, usePollsContractAddress, useTokenApproval } from "@/lib/contracts/polls-contract-utils"
+import { useCreatePoll, useCreatePollWithFunding, usePlatformFee, usePollsContractAddress, useTokenApproval, useTokenAllowance } from "@/lib/contracts/polls-contract-utils"
 import { useAccount, useChainId, useBalance } from "wagmi"
 import { Address, parseUnits, formatUnits } from "viem"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION, FundingType, VotingType } from "@/lib/contracts/polls-contract"
@@ -87,7 +87,7 @@ export function PollCreationForm() {
 
   // State for approval flow
   const [needsApproval, setNeedsApproval] = useState(false)
-  const [isApprovalStep, setIsApprovalStep] = useState(false)
+  const [approvalPending, setApprovalPending] = useState(false)
 
   const {
     register,
@@ -133,7 +133,27 @@ export function PollCreationForm() {
   const title = watch("title")
   const publish = watch("publish")
 
-  const isSubmitting = isPending || isConfirming || isFundingPending || isFundingConfirming || isApproving
+  // Get funding token address for allowance check
+  const fundingTokenAddress = fundingToken && fundingToken !== "ETH" && fundingToken !== "MNT"
+    ? getTokenAddress(chainId, fundingToken)
+    : undefined
+
+  // Check token allowance for ERC20 tokens
+  const { data: allowanceData, refetch: refetchAllowance } = useTokenAllowance(
+    fundingTokenAddress,
+    address,
+    contractAddress
+  )
+
+  // Calculate if approval is needed
+  const tokenInfo = TOKEN_INFO[fundingToken as keyof typeof TOKEN_INFO]
+  const decimals = tokenInfo?.decimals || 18
+  const fundingAmountWei = totalFunding > 0 ? parseUnits(totalFunding.toString(), decimals) : BigInt(0)
+  const currentAllowance = allowanceData ? BigInt(allowanceData.toString()) : BigInt(0)
+  const isERC20Token = fundingToken && fundingToken !== "ETH" && fundingToken !== "MNT"
+  const needsTokenApproval = isERC20Token && fundNow && fundingType === "self" && totalFunding > 0 && currentAllowance < fundingAmountWei
+
+  const isSubmitting = isPending || isConfirming || isFundingPending || isFundingConfirming || isApproving || approvalPending
 
   const addOption = () => {
     if (options.length < 10) {
@@ -207,6 +227,36 @@ export function PollCreationForm() {
     // Only allow going back to completed steps
     if (step < currentStep) {
       setCurrentStep(step)
+    }
+  }
+
+  // Handle token approval for ERC20 tokens
+  const handleApproval = async () => {
+    if (!fundingTokenAddress || !contractAddress) {
+      toast.error("Token or contract address not available")
+      return
+    }
+
+    try {
+      setApprovalPending(true)
+      await approveToken(
+        fundingTokenAddress,
+        contractAddress,
+        totalFunding.toString(),
+        decimals
+      )
+    } catch (error) {
+      console.error("Approval error:", error)
+      setApprovalPending(false)
+      if (error instanceof Error) {
+        if (error.message.includes("User rejected")) {
+          toast.error("Approval was rejected by user")
+        } else {
+          toast.error(`Approval failed: ${error.message}`)
+        }
+      } else {
+        toast.error("Failed to approve token. Please try again.")
+      }
     }
   }
 
@@ -297,6 +347,12 @@ export function PollCreationForm() {
         const decimals = tokenInfo?.decimals || 18
         const fundingAmountWei = parseUnits(totalFunding.toString(), decimals)
 
+        // Calculate expectedResponses and rewardPerResponse in wei
+        const expectedResponsesValue = BigInt(data.expectedResponses || 0)
+        const rewardPerResponseWei = data.rewardPerResponse && data.rewardPerResponse > 0
+          ? parseUnits(data.rewardPerResponse.toString(), decimals)
+          : BigInt(0)
+
         // Create poll with funding in a single transaction
         await createPollWithFunding(
           data.title,
@@ -306,7 +362,9 @@ export function PollCreationForm() {
           fundingTypeEnum,
           votingTypeEnum,
           data.publish,
-          fundingAmountWei
+          fundingAmountWei,
+          expectedResponsesValue,
+          rewardPerResponseWei
         )
       } else {
         // Create poll without funding
@@ -353,6 +411,15 @@ export function PollCreationForm() {
       router.push("/dapp")
     }
   }, [isSuccess, isFundingSuccess, reset, router])
+
+  // Handle approval success - refetch allowance
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success("Token approval successful! You can now create your poll.")
+      setApprovalPending(false)
+      refetchAllowance()
+    }
+  }, [isApproveSuccess, refetchAllowance])
 
   // Handle error
   if (error) {
@@ -777,14 +844,29 @@ export function PollCreationForm() {
               </div>
 
               {fundNow && totalFunding > 0 && (
-                <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                  <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <div className={cn(
+                  "flex items-start gap-2 p-3 rounded-lg border",
+                  needsTokenApproval
+                    ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                    : "bg-primary/5 border-primary/20"
+                )}>
+                  <Info className={cn(
+                    "h-4 w-4 mt-0.5 shrink-0",
+                    needsTokenApproval ? "text-amber-600" : "text-primary"
+                  )} />
                   <div className="text-sm">
-                    <p className="font-medium text-primary">Ready to Fund</p>
+                    <p className={cn(
+                      "font-medium",
+                      needsTokenApproval ? "text-amber-800 dark:text-amber-200" : "text-primary"
+                    )}>
+                      {needsTokenApproval ? "Approval Required" : "Ready to Fund"}
+                    </p>
                     <p className="text-muted-foreground mt-1">
                       {fundingToken === "ETH" || fundingToken === "MNT"
                         ? `You'll send ${totalFunding.toFixed(4)} ${fundingToken} when creating the poll.`
-                        : `You may need to approve ${fundingToken} spending first, then send ${totalFunding.toFixed(4)} ${fundingToken} when creating the poll.`}
+                        : needsTokenApproval
+                          ? `Step 1: Approve the contract to spend your ${fundingToken}. Step 2: Create the poll with ${totalFunding.toFixed(4)} ${fundingToken} funding.`
+                          : `Approved! Click "Create & Fund Poll" to create your poll with ${totalFunding.toFixed(4)} ${fundingToken} funding.`}
                     </p>
                   </div>
                 </div>
@@ -915,6 +997,16 @@ export function PollCreationForm() {
               <Button type="button" size="lg" onClick={handleNext}>
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : needsTokenApproval ? (
+              // Show Approve button when ERC20 token approval is needed
+              <Button
+                type="button"
+                size="lg"
+                disabled={isSubmitting || !isConnected || !contractAddress}
+                onClick={handleApproval}
+              >
+                {(isApproving || approvalPending) ? "Approving token..." : `Approve ${fundingToken}`}
               </Button>
             ) : (
               <Button

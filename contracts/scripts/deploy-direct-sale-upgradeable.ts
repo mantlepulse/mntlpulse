@@ -177,9 +177,9 @@ function getTokenAddresses(chainId: number): {
   // Mantle Sepolia
   if (chainId === 5003) {
     return {
-      pulseToken: "", // PulsePollToken - deploy first
-      usdcToken: "", // Mantle Sepolia USDC - update after deployment
-      ethUsdPriceFeed: "", // Chainlink ETH/USD on Mantle Sepolia - verify availability
+      pulseToken: "0xa3713739c39419aA1c6daf349dB4342Be59b9142", // PulsePollToken
+      usdcToken: "0x6763442EbDe3705C4AE49Ca926b001997C67cC51", // MockUSDC
+      ethUsdPriceFeed: "0x1b684A60309b0916C77834d62d117d306171FDFE", // MockV3Aggregator
     };
   }
 
