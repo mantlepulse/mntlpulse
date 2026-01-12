@@ -20,9 +20,9 @@ import { CalendarIcon, Plus, X, Info, Coins, Users, Clock, AlertCircle, Sparkles
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { useCreatePoll, usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
-import { useAccount, useChainId } from "wagmi"
-import { Address } from "viem"
+import { useCreatePoll, useCreatePollWithFunding, usePlatformFee, usePollsContractAddress, useTokenApproval } from "@/lib/contracts/polls-contract-utils"
+import { useAccount, useChainId, useBalance } from "wagmi"
+import { Address, parseUnits, formatUnits } from "viem"
 import { MIN_POLL_DURATION, MAX_POLL_DURATION, FundingType, VotingType } from "@/lib/contracts/polls-contract"
 import { useIsPremiumOrStaked } from "@/lib/contracts/premium-contract-utils"
 import { useRouter } from "next/navigation"
@@ -42,7 +42,14 @@ const pollSchema = z.object({
   rewardAmount: z.coerce.number().min(0).optional(),
   votingType: z.enum(["linear", "quadratic"]),
   publish: z.boolean(),
+  // New funding fields
+  expectedResponses: z.coerce.number().min(1).optional(),
+  rewardPerResponse: z.coerce.number().min(0).optional(),
+  fundNow: z.boolean().default(true),
 })
+
+// Platform fee percentage (will be fetched from contract, default to 5%)
+const DEFAULT_PLATFORM_FEE_PERCENT = 500 // 5% in basis points
 
 type PollFormData = z.infer<typeof pollSchema>
 
@@ -63,14 +70,24 @@ export function PollCreationForm() {
   const contractAddress = usePollsContractAddress()
   const chainId = useChainId()
   const { createPoll, isPending, isConfirming, isSuccess, error } = useCreatePoll()
+  const { createPollWithFunding, isPending: isFundingPending, isConfirming: isFundingConfirming, isSuccess: isFundingSuccess, error: fundingError } = useCreatePollWithFunding()
+  const { approve: approveToken, isPending: isApproving, isSuccess: isApproveSuccess } = useTokenApproval()
   const router = useRouter()
 
   // Check if user has premium access (subscription or staking)
   const { data: isPremiumData, isLoading: isPremiumLoading } = useIsPremiumOrStaked(address)
   const isPremium = isPremiumData as boolean | undefined
 
+  // Get platform fee from contract
+  const { data: platformFeeData } = usePlatformFee()
+  const platformFeePercent = platformFeeData ? Number(platformFeeData) : DEFAULT_PLATFORM_FEE_PERCENT
+
   // Get supported tokens for the current chain
   const supportedTokens = getSupportedTokens(chainId)
+
+  // State for approval flow
+  const [needsApproval, setNeedsApproval] = useState(false)
+  const [isApprovalStep, setIsApprovalStep] = useState(false)
 
   const {
     register,
@@ -94,18 +111,29 @@ export function PollCreationForm() {
       rewardAmount: 0,
       votingType: "linear",
       publish: true,
+      expectedResponses: 10,
+      rewardPerResponse: 1,
+      fundNow: true,
     },
   })
 
   const fundingType = watch("fundingType")
   const fundingToken = watch("fundingToken")
   const endDate = watch("endDate")
+  const expectedResponses = watch("expectedResponses") || 0
+  const rewardPerResponse = watch("rewardPerResponse") || 0
+  const fundNow = watch("fundNow")
+
+  // Calculate funding amounts
+  const rewardPool = expectedResponses * rewardPerResponse
+  const platformFee = (rewardPool * platformFeePercent) / 10000
+  const totalFunding = rewardPool + platformFee
   const category = watch("category")
   const votingType = watch("votingType")
   const title = watch("title")
   const publish = watch("publish")
 
-  const isSubmitting = isPending || isConfirming
+  const isSubmitting = isPending || isConfirming || isFundingPending || isFundingConfirming || isApproving
 
   const addOption = () => {
     if (options.length < 10) {
@@ -260,7 +288,30 @@ export function PollCreationForm() {
         return
       }
 
-      await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum, votingTypeEnum, data.publish)
+      // Check if we should fund during creation
+      const shouldFundNow = data.fundNow && data.fundingType === "self" && totalFunding > 0
+
+      if (shouldFundNow) {
+        // Get token decimals for parsing amount
+        const tokenInfo = TOKEN_INFO[data.fundingToken as keyof typeof TOKEN_INFO]
+        const decimals = tokenInfo?.decimals || 18
+        const fundingAmountWei = parseUnits(totalFunding.toString(), decimals)
+
+        // Create poll with funding in a single transaction
+        await createPollWithFunding(
+          data.title,
+          validOptions,
+          durationInHours,
+          fundingTokenAddress,
+          fundingTypeEnum,
+          votingTypeEnum,
+          data.publish,
+          fundingAmountWei
+        )
+      } else {
+        // Create poll without funding
+        await createPoll(data.title, validOptions, durationInHours, fundingTokenAddress, fundingTypeEnum, votingTypeEnum, data.publish)
+      }
 
     } catch (error) {
       console.error("Error creating poll:", error)
@@ -283,8 +334,8 @@ export function PollCreationForm() {
 
   // Handle success
   useEffect(() => {
-    if (isSuccess) {
-      toast.success("Poll created successfully!")
+    if (isSuccess || isFundingSuccess) {
+      toast.success(isFundingSuccess ? "Poll created and funded successfully!" : "Poll created successfully!")
       setOptions(["", ""])
       setCurrentStep(1)
       reset({
@@ -295,10 +346,13 @@ export function PollCreationForm() {
         options: ["", ""],
         votingType: "linear",
         publish: true,
+        expectedResponses: 10,
+        rewardPerResponse: 1,
+        fundNow: true,
       })
       router.push("/dapp")
     }
-  }, [isSuccess, reset, router])
+  }, [isSuccess, isFundingSuccess, reset, router])
 
   // Handle error
   if (error) {
@@ -616,53 +670,135 @@ export function PollCreationForm() {
           </RadioGroup>
 
           {fundingType === "self" && (
-            <div className="space-y-2">
-              <Label htmlFor="fundingToken">Funding Token</Label>
-              <Select
-                value={fundingToken}
-                onValueChange={(value) => setValue("fundingToken", value, { shouldValidate: true })}
-              >
-                <SelectTrigger id="fundingToken">
-                  <SelectValue placeholder="Select token" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(supportedTokens).map((symbol) => {
-                    const tokenInfo = TOKEN_INFO[symbol]
-                    return (
-                      <SelectItem key={symbol} value={symbol}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{symbol}</span>
-                          <span className="text-muted-foreground text-sm">- {tokenInfo?.name || symbol}</span>
-                        </div>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              {/* Funding Token Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="fundingToken">Funding Token</Label>
+                <Select
+                  value={fundingToken}
+                  onValueChange={(value) => setValue("fundingToken", value, { shouldValidate: true })}
+                >
+                  <SelectTrigger id="fundingToken">
+                    <SelectValue placeholder="Select token" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(supportedTokens).map((symbol) => {
+                      const tokenInfo = TOKEN_INFO[symbol]
+                      return (
+                        <SelectItem key={symbol} value={symbol}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{symbol}</span>
+                            <span className="text-muted-foreground text-sm">- {tokenInfo?.name || symbol}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Expected Responses & Reward Per Response */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expectedResponses">Expected Responses</Label>
+                  <Input
+                    id="expectedResponses"
+                    type="number"
+                    min="1"
+                    placeholder="10"
+                    value={expectedResponses || ""}
+                    onChange={(e) => setValue("expectedResponses", parseInt(e.target.value) || 0, { shouldValidate: true })}
+                  />
+                  <p className="text-xs text-muted-foreground">How many voters do you expect?</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rewardPerResponse">Reward per Response ({fundingToken || "PULSE"})</Label>
+                  <Input
+                    id="rewardPerResponse"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="1"
+                    value={rewardPerResponse || ""}
+                    onChange={(e) => setValue("rewardPerResponse", parseFloat(e.target.value) || 0, { shouldValidate: true })}
+                  />
+                  <p className="text-xs text-muted-foreground">Reward amount per voter</p>
+                </div>
+              </div>
+
+              {/* Funding Breakdown */}
+              {rewardPool > 0 && (
+                <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Coins className="h-4 w-4" />
+                    Funding Breakdown
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Reward Pool ({expectedResponses} × {rewardPerResponse} {fundingToken})
+                      </span>
+                      <span className="font-medium">{rewardPool.toFixed(4)} {fundingToken}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Platform Fee ({(platformFeePercent / 100).toFixed(1)}%)
+                      </span>
+                      <span className="font-medium">{platformFee.toFixed(4)} {fundingToken}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between">
+                      <span className="font-semibold">Total to Fund</span>
+                      <span className="font-semibold text-primary">{totalFunding.toFixed(4)} {fundingToken}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fund Now Toggle */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Coins className={cn("h-5 w-5 mt-0.5", fundNow ? "text-primary" : "text-muted-foreground")} />
+                  <div className="flex-1">
+                    <Label htmlFor="fund-now-toggle" className="font-medium cursor-pointer">
+                      {fundNow ? "Fund During Creation" : "Fund Later"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {fundNow
+                        ? "Deposit funds in a single transaction when creating the poll."
+                        : "Create the poll first, then add funds separately from the Manage page."}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="fund-now-toggle"
+                  checked={fundNow}
+                  onCheckedChange={(checked) => setValue("fundNow", checked)}
+                />
+              </div>
+
+              {fundNow && totalFunding > 0 && (
+                <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-primary">Ready to Fund</p>
+                    <p className="text-muted-foreground mt-1">
+                      {fundingToken === "ETH" || fundingToken === "MNT"
+                        ? `You'll send ${totalFunding.toFixed(4)} ${fundingToken} when creating the poll.`
+                        : `You may need to approve ${fundingToken} spending first, then send ${totalFunding.toFixed(4)} ${fundingToken} when creating the poll.`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {(fundingType === "self" || fundingType === "community") && (
-            <div className="space-y-2">
-              <Label htmlFor="rewardAmount">
-                Reward Amount {fundingType === "self" && fundingToken ? `(${fundingToken})` : "(PULSE)"}
-              </Label>
-              <Input
-                id="rewardAmount"
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="0.1"
-                {...register("rewardAmount", { valueAsNumber: true })}
-              />
-              <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
-                <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-sm text-muted-foreground">
-                  {fundingType === "self"
-                    ? "You'll need to deposit this amount when creating the poll. Rewards are distributed to voters."
-                    : "This amount will be requested from the community fund. Poll creation is subject to governance approval."}
-                </p>
-              </div>
+          {fundingType === "community" && (
+            <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+              <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                Community-funded polls receive rewards from the community treasury.
+                Donors can contribute to this poll after creation.
+              </p>
             </div>
           )}
         </CardContent>
@@ -787,9 +923,10 @@ export function PollCreationForm() {
                 disabled={isSubmitting || !isConnected || !contractAddress}
                 onClick={handleSubmit(onSubmit)}
               >
-                {isPending && "Preparing transaction..."}
-                {isConfirming && "Confirming transaction..."}
-                {!isSubmitting && "Create Poll"}
+                {isApproving && "Approving token..."}
+                {(isPending || isFundingPending) && "Preparing transaction..."}
+                {(isConfirming || isFundingConfirming) && "Confirming transaction..."}
+                {!isSubmitting && (fundNow && fundingType === "self" && totalFunding > 0 ? "Create & Fund Poll" : "Create Poll")}
               </Button>
             )}
           </div>

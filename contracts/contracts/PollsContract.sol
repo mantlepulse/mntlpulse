@@ -87,6 +87,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     IERC20 public pulseToken;
     address public quadraticVotingTreasury; // Where QV payments go
 
+    // Platform fee state (for poll funding)
+    uint256 public platformFeePercent; // Fee in basis points (e.g., 500 = 5%)
+    address public platformTreasury; // Where platform fees are sent
+    uint256 public constant MAX_PLATFORM_FEE = 2000; // Max 20% fee
+
     event PollCreated(
         uint256 indexed pollId,
         address indexed creator,
@@ -177,6 +182,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     event PremiumContractUpdated(address indexed oldContract, address indexed newContract);
     event PulseTokenUpdated(address indexed oldToken, address indexed newToken);
     event QuadraticVotingTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event PlatformFeeUpdated(uint256 oldFee, uint256 newFee);
+    event PlatformTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event PlatformFeePaid(uint256 indexed pollId, address token, uint256 amount, address treasury);
 
     modifier pollExists(uint256 pollId) {
         require(pollId < nextPollId, "Poll does not exist");
@@ -343,6 +351,88 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         return pollId;
     }
 
+    /**
+     * @notice Create a new poll with initial funding in a single transaction
+     * @param question The poll question
+     * @param options Array of voting options
+     * @param duration Poll duration in seconds
+     * @param fundingToken Token address for funding (address(0) for ETH)
+     * @param fundingType Type of funding (NONE, SELF, COMMUNITY)
+     * @param votingType Type of voting (LINEAR or QUADRATIC)
+     * @param publish If true, poll starts as ACTIVE; if false, poll starts as DRAFT
+     * @param fundingAmount Total amount to fund (including platform fee)
+     * @return pollId The ID of the created poll
+     */
+    function createPollWithFundingAndPublish(
+        string memory question,
+        string[] memory options,
+        uint256 duration,
+        address fundingToken,
+        FundingType fundingType,
+        VotingType votingType,
+        bool publish,
+        uint256 fundingAmount
+    ) external payable nonReentrant returns (uint256) {
+        // Create the poll first
+        uint256 pollId = createPollWithVotingTypeAndPublish(
+            question,
+            options,
+            duration,
+            fundingToken,
+            fundingType,
+            votingType,
+            publish
+        );
+
+        // Handle funding if amount > 0
+        if (fundingAmount > 0) {
+            require(fundingType == FundingType.SELF, "Only self-funded polls can be funded at creation");
+
+            // Calculate platform fee
+            uint256 platformFee = calculatePlatformFee(fundingAmount);
+            uint256 rewardPool = fundingAmount - platformFee;
+
+            if (fundingToken == address(0)) {
+                // ETH funding
+                require(msg.value == fundingAmount, "ETH amount mismatch");
+
+                // Send platform fee to treasury
+                if (platformFee > 0 && platformTreasury != address(0)) {
+                    (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
+                    require(feeSuccess, "Platform fee transfer failed");
+                    emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
+                }
+
+                // Record reward pool for the poll
+                polls[pollId].totalFunding += rewardPool;
+                polls[pollId].fundings[msg.sender] += rewardPool;
+                pollTokenBalances[pollId][address(0)] += rewardPool;
+            } else {
+                // ERC20 token funding
+                require(whitelistedTokens[fundingToken], "Token not whitelisted");
+                require(msg.value == 0, "ETH not accepted for token-funded polls");
+
+                // Transfer full amount from user
+                IERC20(fundingToken).safeTransferFrom(msg.sender, address(this), fundingAmount);
+
+                // Send platform fee to treasury
+                if (platformFee > 0 && platformTreasury != address(0)) {
+                    IERC20(fundingToken).safeTransfer(platformTreasury, platformFee);
+                    emit PlatformFeePaid(pollId, fundingToken, platformFee, platformTreasury);
+                }
+
+                // Record reward pool for the poll
+                polls[pollId].totalFunding += rewardPool;
+                polls[pollId].fundings[msg.sender] += rewardPool;
+                pollTokenBalances[pollId][fundingToken] += rewardPool;
+            }
+
+            emit PollFunded(pollId, msg.sender, fundingToken, rewardPool);
+        }
+
+        return pollId;
+    }
+
     function vote(uint256 pollId, uint256 optionIndex)
         external
         pollExists(pollId)
@@ -447,6 +537,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         return polls[pollId].votesOwned[voter];
     }
 
+    /**
+     * @notice Fund a poll with ETH (platform fee is deducted)
+     * @param pollId The poll ID to fund
+     */
     function fundPollWithETH(uint256 pollId)
         external
         payable
@@ -457,13 +551,31 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         require(msg.value > 0, "Must send ETH to fund");
         require(polls[pollId].fundingToken == address(0), "This poll only accepts a specific token");
 
-        polls[pollId].totalFunding += msg.value;
-        polls[pollId].fundings[msg.sender] += msg.value;
-        pollTokenBalances[pollId][address(0)] += msg.value;
+        // Calculate platform fee
+        uint256 platformFee = calculatePlatformFee(msg.value);
+        uint256 rewardPool = msg.value - platformFee;
 
-        emit PollFunded(pollId, msg.sender, address(0), msg.value);
+        // Send platform fee to treasury
+        if (platformFee > 0 && platformTreasury != address(0)) {
+            (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
+            require(feeSuccess, "Platform fee transfer failed");
+            emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
+        }
+
+        // Record reward pool (after fee deduction)
+        polls[pollId].totalFunding += rewardPool;
+        polls[pollId].fundings[msg.sender] += rewardPool;
+        pollTokenBalances[pollId][address(0)] += rewardPool;
+
+        emit PollFunded(pollId, msg.sender, address(0), rewardPool);
     }
 
+    /**
+     * @notice Fund a poll with ERC20 tokens (platform fee is deducted)
+     * @param pollId The poll ID to fund
+     * @param token The token address
+     * @param amount Total amount to fund (including platform fee)
+     */
     function fundPollWithToken(
         uint256 pollId,
         address token,
@@ -478,13 +590,25 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         require(amount > 0, "Amount must be greater than 0");
         require(polls[pollId].fundingToken == token, "This poll only accepts a specific token");
 
+        // Transfer full amount from user
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
-        polls[pollId].totalFunding += amount;
-        polls[pollId].fundings[msg.sender] += amount;
-        pollTokenBalances[pollId][token] += amount;
+        // Calculate platform fee
+        uint256 platformFee = calculatePlatformFee(amount);
+        uint256 rewardPool = amount - platformFee;
 
-        emit PollFunded(pollId, msg.sender, token, amount);
+        // Send platform fee to treasury
+        if (platformFee > 0 && platformTreasury != address(0)) {
+            IERC20(token).safeTransfer(platformTreasury, platformFee);
+            emit PlatformFeePaid(pollId, token, platformFee, platformTreasury);
+        }
+
+        // Record reward pool (after fee deduction)
+        polls[pollId].totalFunding += rewardPool;
+        polls[pollId].fundings[msg.sender] += rewardPool;
+        pollTokenBalances[pollId][token] += rewardPool;
+
+        emit PollFunded(pollId, msg.sender, token, rewardPool);
     }
 
     function withdrawFunds(uint256 pollId, address recipient, address[] calldata tokens)
@@ -905,6 +1029,38 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address oldTreasury = quadraticVotingTreasury;
         quadraticVotingTreasury = _treasury;
         emit QuadraticVotingTreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    /**
+     * @notice Set the platform fee percentage for poll funding
+     * @param _feePercent Fee in basis points (e.g., 500 = 5%)
+     */
+    function setPlatformFee(uint256 _feePercent) external onlyOwner {
+        require(_feePercent <= MAX_PLATFORM_FEE, "Fee exceeds maximum");
+        uint256 oldFee = platformFeePercent;
+        platformFeePercent = _feePercent;
+        emit PlatformFeeUpdated(oldFee, _feePercent);
+    }
+
+    /**
+     * @notice Set the treasury address for platform fees
+     * @param _treasury Address to receive platform fees
+     */
+    function setPlatformTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid treasury address");
+        address oldTreasury = platformTreasury;
+        platformTreasury = _treasury;
+        emit PlatformTreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    /**
+     * @notice Calculate platform fee for a given amount
+     * @param amount The funding amount
+     * @return fee The platform fee amount
+     */
+    function calculatePlatformFee(uint256 amount) public view returns (uint256) {
+        if (platformFeePercent == 0) return 0;
+        return (amount * platformFeePercent) / 10000;
     }
 
     /**

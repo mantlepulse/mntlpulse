@@ -1,7 +1,7 @@
 {
   "PollsContract": {
     "proxy": "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
-    "implementation": "0x434d0fDd72AA670a229294E93D0933Ea685802fd",
+    "implementation": "0xC84377d58747423E1a07505512Adf99A90F86051",
     "deployedAt": "2026-01-11T07:30:47.254Z",
     "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
     "deploymentTx": "0x2a9380842ff498e3ce30d177221eb14e103e6782af84e30d6fd831df51f6f3a4",
@@ -15,6 +15,13 @@
         "upgradeTx": "N/A",
         "blockNumber": 33294991,
         "previousImplementation": "0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893"
+      },
+      {
+        "implementationAddress": "0xC84377d58747423E1a07505512Adf99A90F86051",
+        "upgradedAt": "2026-01-12T16:06:41.901Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33344664,
+        "previousImplementation": "0x434d0fDd72AA670a229294E93D0933Ea685802fd"
       }
     ]
   },

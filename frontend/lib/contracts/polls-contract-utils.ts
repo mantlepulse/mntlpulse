@@ -164,6 +164,79 @@ export const useCreatePoll = () => {
   }
 }
 
+// Hook to read platform fee percentage
+export const usePlatformFee = () => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.PLATFORM_FEE_PERCENT,
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+}
+
+// Hook to calculate platform fee for a specific amount
+export const useCalculatePlatformFee = (amount: bigint) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.CALCULATE_PLATFORM_FEE,
+    args: [amount],
+    query: {
+      enabled: !!contractAddress && amount > BigInt(0),
+    },
+  })
+}
+
+// Hook to create a poll with funding in a single transaction
+export const useCreatePollWithFunding = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const createPollWithFunding = async (
+    question: string,
+    options: string[],
+    durationInHours: number,
+    fundingToken: Address,
+    fundingType: FundingType,
+    votingType: VotingType = VotingType.LINEAR,
+    publish: boolean = true,
+    fundingAmount: bigint // Total amount including platform fee
+  ) => {
+    if (!contractAddress) return
+
+    const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
+    const isETH = fundingToken === '0x0000000000000000000000000000000000000000'
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.CREATE_POLL_WITH_FUNDING_AND_PUBLISH,
+      args: [question, options, durationInSeconds, fundingToken, fundingType, votingType, publish, fundingAmount],
+      value: isETH ? fundingAmount : BigInt(0),
+    })
+  }
+
+  return {
+    createPollWithFunding,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    receipt,
+  }
+}
+
 // Hook to vote on a poll
 export const useVote = () => {
   const contractAddress = usePollsContractAddress()

@@ -33,11 +33,15 @@ export const CONTRACT_FUNCTIONS = {
   GET_USER_VOTES_IN_POLL: 'getUserVotesInPoll',
   PREVIEW_VOTE_COST: 'previewVoteCost',
   CALCULATE_QUADRATIC_COST: 'calculateQuadraticCost',
+  PLATFORM_FEE_PERCENT: 'platformFeePercent',
+  PLATFORM_TREASURY: 'platformTreasury',
+  CALCULATE_PLATFORM_FEE: 'calculatePlatformFee',
 
   // Write functions
   CREATE_POLL: 'createPoll',
   CREATE_POLL_WITH_VOTING_TYPE: 'createPollWithVotingType',
   CREATE_POLL_WITH_VOTING_TYPE_AND_PUBLISH: 'createPollWithVotingTypeAndPublish',
+  CREATE_POLL_WITH_FUNDING_AND_PUBLISH: 'createPollWithFundingAndPublish',
   VOTE: 'vote',
   BUY_VOTES: 'buyVotes',
   FUND_POLL_WITH_ETH: 'fundPollWithETH',
@@ -50,6 +54,8 @@ export const CONTRACT_FUNCTIONS = {
   PUBLISH_POLL: 'publishPoll',
   FINALIZE_POLL: 'finalizePoll',
   WHITELIST_TOKEN: 'whitelistToken',
+  SET_PLATFORM_FEE: 'setPlatformFee',
+  SET_PLATFORM_TREASURY: 'setPlatformTreasury',
 } as const
 
 // Event names for listening to contract events
