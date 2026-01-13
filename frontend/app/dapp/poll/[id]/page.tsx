@@ -63,8 +63,8 @@ export default function PollDetailPage({ params }: PageProps) {
   const [id, question, options, votes, endTime, isActive, creator, totalFunding, , fundingToken, , , , votingType] = pollData
   const isQuadraticVoting = votingType === VotingType.QUADRATIC
 
-  // Get funding token symbol and decimals
-  const fundingTokenSymbol = chainId ? getTokenSymbol(chainId, fundingToken) || 'ETH' : 'ETH'
+  // Get funding token symbol and decimals (PULSE is default for poll funding on Mantle)
+  const fundingTokenSymbol = chainId ? getTokenSymbol(chainId, fundingToken) || 'PULSE' : 'PULSE'
   const tokenDecimals = TOKEN_INFO[fundingTokenSymbol]?.decimals || 18
 
   // Calculate poll stats

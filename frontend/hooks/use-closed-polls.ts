@@ -19,9 +19,16 @@ interface SubgraphClosedPoll {
   votes: string[]
   endTime: string
   isActive: boolean
+  creator: {
+    id: string
+  }
   totalFunding: string
   totalFundingAmount: string
-  fundingToken: string
+  fundingToken?: {
+    id: string
+    symbol: string
+    decimals: number
+  }
   voteCount: string
   voterCount: string
   distributionMode: string
@@ -61,6 +68,12 @@ function transformClosedPoll(poll: SubgraphClosedPoll, chainId: number): Creator
   const votes = poll.votes.map(v => BigInt(v))
   const totalVotes = votes.reduce((sum, v) => sum + v, BigInt(0))
 
+  // Extract token info from nested object
+  const fundingTokenAddress = poll.fundingToken?.id || '0x0000000000000000000000000000000000000000'
+  const fundingTokenSymbol = poll.fundingToken?.symbol ||
+    getTokenSymbol(chainId, fundingTokenAddress as `0x${string}`) ||
+    'MNT'
+
   return {
     id: poll.id,
     pollId: parseInt(poll.pollId, 10),
@@ -78,8 +91,8 @@ function transformClosedPoll(poll: SubgraphClosedPoll, chainId: number): Creator
     fundingType: fundingTypeMap[poll.fundingType] ?? 'none',
     status: statusMap[poll.status] ?? 'closed',
     createdAt: new Date(parseInt(poll.createdAt, 10) * 1000),
-    fundingToken: poll.fundingToken,
-    fundingTokenSymbol: getTokenSymbol(chainId, poll.fundingToken as `0x${string}`) || 'ETH',
+    fundingToken: fundingTokenAddress,
+    fundingTokenSymbol,
   }
 }
 

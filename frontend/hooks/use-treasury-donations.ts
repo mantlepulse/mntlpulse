@@ -70,8 +70,8 @@ export function useTreasuryDonations(): UseTreasuryDonationsReturn {
           const token = log.args.token as Address
           const amount = log.args.amount as bigint
 
-          // Get token symbol and decimals
-          const tokenSymbol = getTokenSymbol(chainId, token) || 'ETH'
+          // Get token symbol and decimals (MNT is native token on Mantle)
+          const tokenSymbol = getTokenSymbol(chainId, token) || 'MNT'
           const decimals = TOKEN_INFO[tokenSymbol]?.decimals || 18
           const formattedAmount = formatUnits(amount, decimals)
 

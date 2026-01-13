@@ -37,7 +37,7 @@ export function useSubgraphPollFundings(pollId: string | number, first = 100) {
     : []
 
   // Calculate total funding amount
-  const totalFunding = fundings.reduce((sum, f) => sum + f.amountFormatted, 0)
+  const totalFunding = fundings.reduce((sum, f) => sum + f.amount, 0)
 
   return {
     fundings,

@@ -19,9 +19,12 @@ export interface PollVoter {
 interface GetPollVotersResponse {
   votes: {
     id: string
-    voter: string
+    voter: {
+      id: string
+    }
     optionIndex: number
     timestamp: string
+    transactionHash?: string
   }[]
 }
 
@@ -58,11 +61,12 @@ export function useSubgraphPollVoters(pollId: string | number, first = 1000) {
 
   if (data?.votes) {
     for (const vote of data.votes) {
-      const voterAddress = vote.voter.toLowerCase()
+      // Extract voter address from nested User entity
+      const voterAddress = vote.voter.id.toLowerCase()
       if (!seenVoters.has(voterAddress)) {
         seenVoters.add(voterAddress)
         voters.push({
-          address: vote.voter,
+          address: vote.voter.id,
           votedOption: Number(vote.optionIndex),
           timestamp: new Date(Number(vote.timestamp) * 1000),
         })

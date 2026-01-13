@@ -3,18 +3,28 @@
  */
 
 /**
+ * User reference in subgraph (nested entity)
+ */
+export interface SubgraphUserRef {
+  id: string
+}
+
+/**
  * Poll entity from subgraph
  */
 export interface SubgraphPoll {
   id: string
+  pollId?: string
   question: string
   options: string[]
   votes: string[]
   endTime: string
   isActive: boolean
-  creator: string
+  creator: SubgraphUserRef
   createdAt: string
   totalFundingAmount: string
+  status?: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
+  fundingType?: 'NONE' | 'SELF' | 'COMMUNITY'
   votingType: 'LINEAR' | 'QUADRATIC'
   totalVotesBought: string
 }
@@ -27,10 +37,11 @@ export interface SubgraphFunding {
   poll: {
     id: string
   }
-  funder: string
-  token: string
+  funder: SubgraphUserRef
+  token: SubgraphToken
   amount: string
   timestamp: string
+  transactionHash?: string
 }
 
 /**
@@ -61,7 +72,7 @@ export interface SubgraphUserFunding {
     status: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
     fundingType: 'NONE' | 'SELF' | 'COMMUNITY'
   }
-  funder: string
+  funder: SubgraphUserRef
   token: SubgraphToken
   amount: string
   timestamp: string
@@ -95,11 +106,13 @@ export interface SubgraphVote {
   id: string
   poll: {
     id: string
+    pollId?: string
     question: string
   }
-  voter: string
+  voter: SubgraphUserRef
   optionIndex: number
   timestamp: string
+  transactionHash?: string
 }
 
 /**
@@ -247,8 +260,10 @@ export interface SubgraphCreatorPoll {
   votes: string[]
   endTime: string
   isActive: boolean
+  creator: SubgraphUserRef
   totalFunding: string
   totalFundingAmount: string
+  fundingToken?: SubgraphToken
   voteCount: string
   voterCount: string
   distributionMode: 'MANUAL_PULL' | 'MANUAL_PUSH' | 'AUTOMATED'
@@ -256,7 +271,7 @@ export interface SubgraphCreatorPoll {
   status: 'ACTIVE' | 'CLOSED' | 'FOR_CLAIMING' | 'PAUSED'
   createdAt: string
   votingType: 'LINEAR' | 'QUADRATIC'
-  totalVotesBought: string
+  totalVotesBought?: string
 }
 
 /**

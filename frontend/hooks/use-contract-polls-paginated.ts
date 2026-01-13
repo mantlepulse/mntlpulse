@@ -162,8 +162,8 @@ export function useContractPollsPaginated(
       fundingTypeString = 'community'
     }
 
-    // Get token symbol
-    const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'ETH'
+    // Get token symbol (PULSE is default for poll funding on Mantle)
+    const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'PULSE'
 
     // Get correct decimals for the funding token (USDC=6, ETH/PULSE=18)
     const tokenDecimals = TOKEN_INFO[tokenSymbol]?.decimals || 18
@@ -322,10 +322,10 @@ export function useContractPollsPaginated(
         fundingTypeString = 'community'
       }
 
-      // Get token symbol
-      const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'ETH'
+      // Get token symbol (PULSE is default for poll funding on Mantle)
+      const tokenSymbol = getTokenSymbol(chainId, fundingToken as Address) || 'PULSE'
 
-      // Get correct decimals for the funding token (USDC=6, ETH/PULSE=18)
+      // Get correct decimals for the funding token (USDC=6, PULSE=18)
       const tokenDecimals = TOKEN_INFO[tokenSymbol]?.decimals || 18
 
       // Determine status

@@ -60,15 +60,26 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
     }
   })
 
-  // Determine status
+  // Determine status from subgraph status field or fallback to isActive + endTime
   const endTimeMs = Number(poll.endTime) * 1000
   const isEnded = Date.now() >= endTimeMs
-  const status: 'active' | 'ended' = poll.isActive && !isEnded ? 'active' : 'ended'
+  let status: 'active' | 'ended' = poll.isActive && !isEnded ? 'active' : 'ended'
 
-  // Determine funding type
+  // If subgraph has status field, use it
+  if (poll.status) {
+    status = poll.status === 'ACTIVE' ? 'active' : 'ended'
+  }
+
+  // Determine funding type from subgraph fundingType field or calculate
   const totalFundingNum = Number(poll.totalFundingAmount)
-  const fundingType: 'community' | 'self' | 'none' =
-    totalFundingNum > 0 ? 'self' : 'none'
+  let fundingType: 'community' | 'self' | 'none' = 'none'
+
+  if (poll.fundingType) {
+    fundingType = poll.fundingType === 'COMMUNITY' ? 'community' :
+                  poll.fundingType === 'SELF' ? 'self' : 'none'
+  } else if (totalFundingNum > 0) {
+    fundingType = 'self'
+  }
 
   // Get proper decimals for the funding token
   const decimals = getTokenDecimals(metadata.token)
@@ -78,11 +89,14 @@ export function mapSubgraphPollToFormattedPoll(poll: SubgraphPoll): FormattedPol
   const votingType: 'standard' | 'quadratic' =
     poll.votingType === 'QUADRATIC' ? 'quadratic' : 'standard'
 
+  // Extract creator address from nested User entity
+  const creatorAddress = poll.creator?.id || poll.creator as unknown as string
+
   return {
-    id: poll.id,
+    id: poll.pollId || poll.id,
     title: metadata.title,
     description: '', // Subgraph doesn't store separate description
-    creator: poll.creator as Address,
+    creator: creatorAddress as Address,
     createdAt: new Date(Number(poll.createdAt) * 1000).toISOString(),
     endsAt: new Date(endTimeMs).toISOString(),
     totalVotes,
@@ -107,10 +121,20 @@ export function mapSubgraphPollsToFormattedPolls(polls: SubgraphPoll[]): Formatt
  * Map subgraph funding to simplified funding
  */
 export function mapSubgraphFundingToSimplified(funding: SubgraphFunding): SimplifiedFunding {
+  // Extract funder address from nested User entity
+  const funderAddress = typeof funding.funder === 'object' ? funding.funder.id : funding.funder
+
+  // Extract token address from nested Token entity
+  const tokenAddress = typeof funding.token === 'object' ? funding.token.id : funding.token
+
+  // Get decimals from token object if available
+  const decimals = typeof funding.token === 'object' ? funding.token.decimals : 18
+  const divisor = Math.pow(10, decimals)
+
   return {
-    funder: funding.funder,
-    token: funding.token,
-    amount: Number(funding.amount) / 1e18, // Convert from wei
+    funder: funderAddress,
+    token: tokenAddress,
+    amount: Number(funding.amount) / divisor,
     timestamp: new Date(Number(funding.timestamp) * 1000),
   }
 }
@@ -128,22 +152,19 @@ export function mapSubgraphFundingsToSimplified(fundings: SubgraphFunding[]): Si
 export function getTokenSymbol(tokenAddress: string): string {
   const address = tokenAddress.toLowerCase()
 
-  // ETH (zero address)
+  // MNT / ETH (zero address)
   if (address === '0x0000000000000000000000000000000000000000') {
-    return 'ETH'
+    return 'MNT'
   }
 
-  // Base Sepolia tokens
-  if (address === '0x19821658d5798976152146d1c1882047670b898c') {
+  // Mantle Sepolia tokens
+  if (address === '0xa3713739c39419aa1c6daf349db4342be59b9142') {
     return 'PULSE'
   }
-  if (address === '0x036cbd53842c5426634e7929541ec2318f3dcf7e') {
-    return 'USDC'
-  }
 
-  // Base Mainnet tokens
-  if (address === '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913') {
-    return 'USDC'
+  // Wrapped MNT on Mantle Sepolia
+  if (address === '0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111') {
+    return 'WMNT'
   }
 
   // Unknown token

@@ -112,7 +112,7 @@ export function ManagePollsTab({
   }
 
   const formatReward = (amount: bigint, symbol?: string) => {
-    const tokenSymbol = symbol || "ETH"
+    const tokenSymbol = symbol || "PULSE"
     if (amount === BigInt(0)) return `0 ${tokenSymbol}`
     const formatted = parseFloat(formatEther(amount)).toFixed(4)
     return `${formatted} ${tokenSymbol}`

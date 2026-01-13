@@ -6,18 +6,24 @@ import { gql } from '@apollo/client'
 
 /**
  * Fragment for poll fields
+ * Note: creator is a User entity, so we fetch the id (which is the address)
  */
 const POLL_FIELDS = gql`
   fragment PollFields on Poll {
     id
+    pollId
     question
     options
     votes
     endTime
     isActive
-    creator
+    creator {
+      id
+    }
     createdAt
     totalFundingAmount
+    status
+    fundingType
     votingType
     totalVotesBought
   }
@@ -142,10 +148,17 @@ export const GET_POLL_FUNDINGS = gql`
       poll {
         id
       }
-      funder
-      token
+      funder {
+        id
+      }
+      token {
+        id
+        symbol
+        decimals
+      }
       amount
       timestamp
+      transactionHash
     }
   }
 `
@@ -155,7 +168,7 @@ export const GET_POLL_FUNDINGS = gql`
  */
 export const GET_USER_VOTES = gql`
   query GetUserVotes(
-    $user: String!
+    $user: Bytes!
     $first: Int = 100
     $skip: Int = 0
   ) {
@@ -169,11 +182,15 @@ export const GET_USER_VOTES = gql`
       id
       poll {
         id
+        pollId
         question
       }
-      voter
+      voter {
+        id
+      }
       optionIndex
       timestamp
+      transactionHash
     }
   }
 `
@@ -183,7 +200,7 @@ export const GET_USER_VOTES = gql`
  */
 export const GET_USER_FUNDINGS = gql`
   query GetUserFundings(
-    $user: String!
+    $user: Bytes!
     $first: Int = 100
   ) {
     fundings(
@@ -207,7 +224,9 @@ export const GET_USER_FUNDINGS = gql`
         status
         fundingType
       }
-      funder
+      funder {
+        id
+      }
       token {
         id
         symbol
@@ -225,7 +244,7 @@ export const GET_USER_FUNDINGS = gql`
  */
 export const GET_USER_DISTRIBUTIONS = gql`
   query GetUserDistributions(
-    $user: String!
+    $user: Bytes!
     $first: Int = 100
   ) {
     distributions(
@@ -272,9 +291,12 @@ export const GET_POLL_VOTERS = gql`
       orderDirection: asc
     ) {
       id
-      voter
+      voter {
+        id
+      }
       optionIndex
       timestamp
+      transactionHash
     }
   }
 `
@@ -325,6 +347,9 @@ export const GET_POLLS_BY_CREATOR = gql`
       votes
       endTime
       isActive
+      creator {
+        id
+      }
       totalFunding
       totalFundingAmount
       voteCount
@@ -365,9 +390,16 @@ export const GET_CLOSED_POLLS_BY_CREATOR = gql`
       votes
       endTime
       isActive
+      creator {
+        id
+      }
       totalFunding
       totalFundingAmount
-      fundingToken
+      fundingToken {
+        id
+        symbol
+        decimals
+      }
       voteCount
       voterCount
       distributionMode
