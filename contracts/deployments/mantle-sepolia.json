@@ -1,7 +1,7 @@
 {
   "PollsContract": {
     "proxy": "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
-    "implementation": "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f",
+    "implementation": "0x0eCD31493E1f2450D6a7b66D4391696e418eA081",
     "deployedAt": "2026-01-11T07:30:47.254Z",
     "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
     "deploymentTx": "0x2a9380842ff498e3ce30d177221eb14e103e6782af84e30d6fd831df51f6f3a4",
@@ -43,6 +43,34 @@
         "upgradeTx": "N/A",
         "blockNumber": 33359644,
         "previousImplementation": "0x5A3E8091e9a1C89bb0388B86bF296F2e297f761D"
+      },
+      {
+        "implementationAddress": "0x68E4BC78443939cFDA849ba35b5DB0D0b5db409D",
+        "upgradedAt": "2026-01-13T03:50:16.352Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33365770,
+        "previousImplementation": "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f"
+      },
+      {
+        "implementationAddress": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296",
+        "upgradedAt": "2026-01-13T04:00:47.408Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33366087,
+        "previousImplementation": "0x68E4BC78443939cFDA849ba35b5DB0D0b5db409D"
+      },
+      {
+        "implementationAddress": "0x4Ba579f308d6772C80daB98fE35D60c7d4E9Db8C",
+        "upgradedAt": "2026-01-13T11:20:50.324Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33379288,
+        "previousImplementation": "0xa90e4C8Ae9fcd13c2573bf96025aEF6cc6E63296"
+      },
+      {
+        "implementationAddress": "0x0eCD31493E1f2450D6a7b66D4391696e418eA081",
+        "upgradedAt": "2026-01-13T12:15:32.137Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33380929,
+        "previousImplementation": "0x4Ba579f308d6772C80daB98fE35D60c7d4E9Db8C"
       }
     ]
   },

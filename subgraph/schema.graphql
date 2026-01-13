@@ -1,0 +1,704 @@
+# BasePulse Subgraph Schema
+# Indexes on-chain polling data from the PollsContract
+
+# Enums
+
+enum DistributionMode {
+  MANUAL_PULL
+  MANUAL_PUSH
+  AUTOMATED
+}
+
+enum DistributionType {
+  WITHDRAWN
+  DISTRIBUTED
+  CLAIMED
+}
+
+enum FundingType {
+  NONE
+  SELF
+  COMMUNITY
+}
+
+enum PollStatus {
+  ACTIVE
+  CLOSED
+  FOR_CLAIMING
+  PAUSED
+}
+
+enum VotingType {
+  LINEAR
+  QUADRATIC
+}
+
+enum SubscriptionTier {
+  NONE
+  MONTHLY
+  ANNUAL
+  LIFETIME
+}
+
+# Core Entities
+
+type Poll @entity(immutable: false) {
+  " Poll ID (on-chain poll ID) "
+  id: Bytes!
+
+  " On-chain poll ID as BigInt "
+  pollId: BigInt!
+
+  " Poll creator address "
+  creator: User!
+
+  " Poll question text "
+  question: String!
+
+  " Array of option strings "
+  options: [String!]!
+
+  " Array of vote counts per option "
+  votes: [BigInt!]!
+
+  " Poll end timestamp "
+  endTime: BigInt!
+
+  " Whether poll is still active "
+  isActive: Boolean!
+
+  " Total funding across all tokens (deprecated, use tokenBalances) "
+  totalFunding: BigInt!
+
+  " Distribution mode for rewards "
+  distributionMode: DistributionMode!
+
+  " Designated funding token for this poll "
+  fundingToken: Token!
+
+  " Type of funding for this poll "
+  fundingType: FundingType!
+
+  " Current poll status "
+  status: PollStatus!
+
+  " Previous poll status "
+  previousStatus: PollStatus!
+
+  " Voting type (LINEAR or QUADRATIC) "
+  votingType: VotingType!
+
+  " Total votes bought in quadratic voting "
+  totalVotesBought: BigInt!
+
+  " Token balances for this poll "
+  tokenBalances: [PollTokenBalance!]! @derivedFrom(field: "poll")
+
+  " Funding events for this poll "
+  fundings: [Funding!]! @derivedFrom(field: "poll")
+
+  " Votes cast on this poll "
+  pollVotes: [Vote!]! @derivedFrom(field: "poll")
+
+  " Distribution events for this poll "
+  distributions: [Distribution!]! @derivedFrom(field: "poll")
+
+  " Distribution mode change history "
+  modeChanges: [DistributionModeChange!]! @derivedFrom(field: "poll")
+
+  " Vote purchases for quadratic voting "
+  votePurchases: [VotePurchase!]! @derivedFrom(field: "poll")
+
+  " Total number of votes cast "
+  voteCount: BigInt!
+
+  " Total number of unique voters "
+  voterCount: BigInt!
+
+  " Total amount funded across all tokens "
+  totalFundingAmount: BigInt!
+
+  " Number of funding events "
+  fundingCount: BigInt!
+
+  " Timestamp when poll was created "
+  createdAt: BigInt!
+
+  " Block number when poll was created "
+  createdAtBlock: BigInt!
+
+  " Last update timestamp "
+  updatedAt: BigInt!
+
+  " Last update block number "
+  updatedAtBlock: BigInt!
+}
+
+type Vote @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Poll that was voted on "
+  poll: Poll!
+
+  " User who voted "
+  voter: User!
+
+  " Index of selected option "
+  optionIndex: BigInt!
+
+  " Timestamp of vote "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+type Funding @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Poll that was funded "
+  poll: Poll!
+
+  " User who funded "
+  funder: User!
+
+  " Token used for funding "
+  token: Token!
+
+  " Amount funded "
+  amount: BigInt!
+
+  " Timestamp of funding "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+type Distribution @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Poll from which funds were distributed "
+  poll: Poll!
+
+  " Recipient of funds "
+  recipient: User!
+
+  " Token distributed "
+  token: Token!
+
+  " Amount distributed "
+  amount: BigInt!
+
+  " Type of distribution event "
+  eventType: DistributionType!
+
+  " Timestamp of distribution "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+type User @entity(immutable: false) {
+  " User address "
+  id: Bytes!
+
+  " Address as bytes "
+  address: Bytes!
+
+  " Polls created by this user "
+  pollsCreated: [Poll!]! @derivedFrom(field: "creator")
+
+  " Votes cast by this user "
+  votes: [Vote!]! @derivedFrom(field: "voter")
+
+  " Fundings made by this user "
+  fundings: [Funding!]! @derivedFrom(field: "funder")
+
+  " Distributions received by this user "
+  distributions: [Distribution!]! @derivedFrom(field: "recipient")
+
+  " Vote purchases by this user (quadratic voting) "
+  votePurchases: [VotePurchase!]! @derivedFrom(field: "voter")
+
+  " Staking info for this user "
+  stake: Stake
+
+  " Subscription info for this user "
+  subscription: PremiumSubscription
+
+  " Total rewards received (aggregated) "
+  totalRewards: BigInt!
+
+  " Total amount funded "
+  totalFunded: BigInt!
+
+  " Number of polls participated in "
+  pollsParticipated: Int!
+
+  " Total number of votes cast "
+  totalVotes: Int!
+
+  " Number of polls created "
+  pollsCreatedCount: Int!
+
+  " First interaction timestamp "
+  firstSeenAt: BigInt!
+
+  " First interaction block "
+  firstSeenAtBlock: BigInt!
+
+  " Last interaction timestamp "
+  lastSeenAt: BigInt!
+
+  " Last interaction block "
+  lastSeenAtBlock: BigInt!
+}
+
+type Token @entity(immutable: false) {
+  " Token address (0x0 for ETH) "
+  id: Bytes!
+
+  " Address as bytes "
+  address: Bytes!
+
+  " Token symbol "
+  symbol: String!
+
+  " Token name "
+  name: String!
+
+  " Token decimals "
+  decimals: Int!
+
+  " Whether token is whitelisted "
+  isWhitelisted: Boolean!
+
+  " Timestamp when whitelisted "
+  whitelistedAt: BigInt
+
+  " Block number when whitelisted "
+  whitelistedAtBlock: BigInt
+
+  " Fundings using this token "
+  fundings: [Funding!]! @derivedFrom(field: "token")
+
+  " Distributions using this token "
+  distributions: [Distribution!]! @derivedFrom(field: "token")
+
+  " Poll token balances "
+  pollBalances: [PollTokenBalance!]! @derivedFrom(field: "token")
+
+  " Total amount funded with this token "
+  totalFunded: BigInt!
+
+  " Total amount distributed with this token "
+  totalDistributed: BigInt!
+
+  " Number of fundings "
+  fundingCount: BigInt!
+
+  " Number of distributions "
+  distributionCount: BigInt!
+
+  " First seen timestamp "
+  firstSeenAt: BigInt!
+
+  " First seen block "
+  firstSeenAtBlock: BigInt!
+
+  " Last seen timestamp "
+  lastSeenAt: BigInt!
+
+  " Last seen block "
+  lastSeenAtBlock: BigInt!
+}
+
+type PollTokenBalance @entity(immutable: false) {
+  " Unique ID: poll ID + token address "
+  id: Bytes!
+
+  " Poll this balance belongs to "
+  poll: Poll!
+
+  " Token "
+  token: Token!
+
+  " Current balance "
+  balance: BigInt!
+
+  " Total amount funded "
+  totalFunded: BigInt!
+
+  " Total amount distributed "
+  totalDistributed: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+type DistributionModeChange @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Poll whose mode was changed "
+  poll: Poll!
+
+  " Previous distribution mode "
+  previousMode: DistributionMode
+
+  " New distribution mode "
+  newMode: DistributionMode!
+
+  " Timestamp of change "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+# Statistics Entities
+
+type GlobalStats @entity(immutable: false) {
+  " Singleton entity with ID 'global' "
+  id: Bytes!
+
+  " Total number of polls created "
+  totalPolls: BigInt!
+
+  " Total number of votes cast "
+  totalVotes: BigInt!
+
+  " Total funding amount across all tokens "
+  totalFunding: BigInt!
+
+  " Total distributions across all tokens "
+  totalDistributions: BigInt!
+
+  " Number of unique users "
+  totalUsers: BigInt!
+
+  " Number of unique voters "
+  totalVoters: BigInt!
+
+  " Number of unique funders "
+  totalFunders: BigInt!
+
+  " Number of whitelisted tokens "
+  whitelistedTokens: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+type DailyStats @entity(immutable: false) {
+  " Day ID: timestamp / 86400 "
+  id: Bytes!
+
+  " Day timestamp (start of day) "
+  day: BigInt!
+
+  " Number of polls created this day "
+  dailyPolls: BigInt!
+
+  " Number of votes cast this day "
+  dailyVotes: BigInt!
+
+  " Funding volume this day "
+  dailyFunding: BigInt!
+
+  " Distribution volume this day "
+  dailyDistributions: BigInt!
+
+  " Number of unique active users this day "
+  dailyActiveUsers: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+type TokenStats @entity(immutable: false) {
+  " Token address "
+  id: Bytes!
+
+  " Token reference "
+  token: Token!
+
+  " Total funding volume "
+  totalFundingVolume: BigInt!
+
+  " Total distribution volume "
+  totalDistributionVolume: BigInt!
+
+  " Number of fundings "
+  fundingCount: BigInt!
+
+  " Number of distributions "
+  distributionCount: BigInt!
+
+  " Number of polls funded with this token "
+  pollsFunded: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+# Quadratic Voting Entities
+
+type VotePurchase @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Poll that was voted on "
+  poll: Poll!
+
+  " User who bought votes "
+  voter: User!
+
+  " Index of selected option "
+  optionIndex: BigInt!
+
+  " Number of votes purchased "
+  numVotes: BigInt!
+
+  " Cost in PULSE tokens "
+  cost: BigInt!
+
+  " Timestamp of purchase "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+# Staking Entities
+
+type Stake @entity(immutable: false) {
+  " User address "
+  id: Bytes!
+
+  " User who staked "
+  user: User!
+
+  " Amount currently staked "
+  amount: BigInt!
+
+  " When staking first started "
+  stakingStartTime: BigInt!
+
+  " Timestamp of last reward claim "
+  lastRewardClaim: BigInt!
+
+  " Total rewards claimed over time "
+  totalRewardsClaimed: BigInt!
+
+  " Whether stake is currently active (amount > 0) "
+  isActive: Boolean!
+
+  " Stake history events "
+  stakeEvents: [StakeEvent!]! @derivedFrom(field: "stake")
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+type StakeEvent @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Stake this event belongs to "
+  stake: Stake!
+
+  " User who performed the action "
+  user: User!
+
+  " Event type: stake, unstake, or claim "
+  eventType: String!
+
+  " Amount involved "
+  amount: BigInt!
+
+  " Timestamp "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+# Premium Subscription Entities
+
+type PremiumSubscription @entity(immutable: false) {
+  " User address "
+  id: Bytes!
+
+  " User who subscribed "
+  user: User!
+
+  " Current subscription tier "
+  tier: SubscriptionTier!
+
+  " Expiration timestamp (0 for lifetime) "
+  expirationTime: BigInt!
+
+  " Whether subscription is currently active "
+  isActive: Boolean!
+
+  " When the subscription was first purchased "
+  purchaseTime: BigInt!
+
+  " Total amount paid in PULSE "
+  totalPaid: BigInt!
+
+  " Subscription purchase history "
+  subscriptionEvents: [SubscriptionEvent!]! @derivedFrom(field: "subscription")
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+type SubscriptionEvent @entity(immutable: true) {
+  " Unique ID: tx hash + log index "
+  id: Bytes!
+
+  " Subscription this event belongs to "
+  subscription: PremiumSubscription!
+
+  " User who subscribed "
+  user: User!
+
+  " Tier purchased "
+  tier: SubscriptionTier!
+
+  " Expiration time after this purchase "
+  expirationTime: BigInt!
+
+  " Price paid "
+  price: BigInt!
+
+  " Timestamp "
+  timestamp: BigInt!
+
+  " Block number "
+  blockNumber: BigInt!
+
+  " Transaction hash "
+  transactionHash: Bytes!
+}
+
+# Quadratic Voting Statistics
+
+type QuadraticVotingStats @entity(immutable: false) {
+  " Singleton entity with ID 'qv-stats' "
+  id: Bytes!
+
+  " Total quadratic polls created "
+  totalQuadraticPolls: BigInt!
+
+  " Total votes bought across all QV polls "
+  totalVotesBought: BigInt!
+
+  " Total PULSE spent on QV votes "
+  totalPulseSpent: BigInt!
+
+  " Number of unique QV voters "
+  totalQVVoters: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+# Staking Statistics
+
+type StakingStats @entity(immutable: false) {
+  " Singleton entity with ID 'staking-stats' "
+  id: Bytes!
+
+  " Total PULSE currently staked "
+  totalStaked: BigInt!
+
+  " Total rewards distributed "
+  totalRewardsDistributed: BigInt!
+
+  " Number of active stakers "
+  activeStakers: BigInt!
+
+  " Number of users with premium via staking "
+  premiumByStaking: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}
+
+# Subscription Statistics
+
+type SubscriptionStats @entity(immutable: false) {
+  " Singleton entity with ID 'subscription-stats' "
+  id: Bytes!
+
+  " Total active subscriptions "
+  totalActiveSubscriptions: BigInt!
+
+  " Total monthly subscribers "
+  monthlySubscribers: BigInt!
+
+  " Total annual subscribers "
+  annualSubscribers: BigInt!
+
+  " Total lifetime subscribers "
+  lifetimeSubscribers: BigInt!
+
+  " Total PULSE collected from subscriptions "
+  totalRevenue: BigInt!
+
+  " Last updated timestamp "
+  updatedAt: BigInt!
+
+  " Last updated block "
+  updatedAtBlock: BigInt!
+}

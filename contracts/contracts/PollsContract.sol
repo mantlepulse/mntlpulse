@@ -204,18 +204,18 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     event DefaultClaimGracePeriodSet(uint256 gracePeriod);
 
     modifier pollExists(uint256 pollId) {
-        require(pollId < nextPollId, "Poll does not exist");
+        require(pollId < nextPollId, "No poll");
         _;
     }
 
     modifier pollActive(uint256 pollId) {
-        require(polls[pollId].isActive, "Poll is not active");
-        require(block.timestamp < polls[pollId].endTime, "Poll has ended");
+        require(polls[pollId].isActive, "Inactive");
+        require(block.timestamp < polls[pollId].endTime, "Ended");
         _;
     }
 
     modifier validOption(uint256 pollId, uint256 optionIndex) {
-        require(optionIndex < polls[pollId].options.length, "Invalid option");
+        require(optionIndex < polls[pollId].options.length, "Bad opt");
         _;
     }
 
@@ -262,7 +262,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setFundingToken(uint256 pollId, address fundingToken) external onlyOwner pollExists(pollId) {
         require(
             fundingToken == address(0) || whitelistedTokens[fundingToken],
-            "Funding token must be ETH or whitelisted"
+            "Bad token"
         );
         polls[pollId].fundingToken = fundingToken;
     }
@@ -312,27 +312,27 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         VotingType votingType,
         bool publish
     ) public returns (uint256) {
-        require(bytes(question).length > 0, "Empty question");
-        require(options.length >= 2, "Min 2 options");
-        require(options.length <= 10, "Max 10 options");
+        require(bytes(question).length > 0, "No Q");
+        require(options.length >= 2, "2+ opts");
+        require(options.length <= 10, "10- opts");
         require(
             duration >= MIN_POLL_DURATION && duration <= MAX_POLL_DURATION,
-            "Invalid poll duration"
+            "Bad duration"
         );
         require(
             fundingToken == address(0) || whitelistedTokens[fundingToken],
-            "Funding token must be ETH or whitelisted"
+            "Bad token"
         );
 
-        // Premium required subscription or staking
+        // Need premium subscription or staking
         if (votingType == VotingType.QUADRATIC) {
             require(
                 address(premiumContract) != address(0),
-                "Premium contract not set"
+                "No premium"
             );
             require(
                 premiumContract.isPremiumOrStaked(msg.sender),
-                "Premium required"
+                "Need premium"
             );
         }
 
@@ -411,7 +411,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
 
         // Handle funding if amount > 0
         if (fundingAmount > 0) {
-            require(fundingType == FundingType.SELF, "Self-fund only");
+            require(fundingType == FundingType.SELF, "Self only");
 
             // Calculate platform fee
             uint256 platformFee = calculatePlatformFee(fundingAmount);
@@ -419,12 +419,12 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
 
             if (fundingToken == address(0)) {
                 // ETH funding
-                require(msg.value == fundingAmount, "ETH amount mismatch");
+                require(msg.value == fundingAmount, "Bad ETH");
 
                 // Send platform fee to treasury
                 if (platformFee > 0 && platformTreasury != address(0)) {
                     (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
-                    require(feeSuccess, "Fee transfer failed");
+                    require(feeSuccess, "Fee failed");
                     emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
                 }
 
@@ -434,8 +434,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
                 pollTokenBalances[pollId][address(0)] += rewardPool;
             } else {
                 // ERC20 token funding
-                require(whitelistedTokens[fundingToken], "Token not whitelisted");
-                require(msg.value == 0, "No ETH for token polls");
+                require(whitelistedTokens[fundingToken], "Bad token");
+                require(msg.value == 0, "No ETH");
 
                 // Transfer full amount from user
                 IERC20(fundingToken).safeTransferFrom(msg.sender, address(this), fundingAmount);
@@ -464,8 +464,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         pollActive(pollId)
         validOption(pollId, optionIndex)
     {
-        require(polls[pollId].votingType == VotingType.LINEAR, "Use buyVotes");
-        require(!polls[pollId].hasVoted[msg.sender], "Already voted");
+        require(polls[pollId].votingType == VotingType.LINEAR, "Use QV");
+        require(!polls[pollId].hasVoted[msg.sender], "Voted");
 
         polls[pollId].hasVoted[msg.sender] = true;
         polls[pollId].votes[optionIndex]++;
@@ -488,10 +488,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         nonReentrant
     {
         Poll storage poll = polls[pollId];
-        require(poll.votingType == VotingType.QUADRATIC, "Not a quadratic poll");
-        require(numVotes > 0, "Must buy at least 1 vote");
-        require(address(pulseToken) != address(0), "PULSE token not set");
-        require(quadraticVotingTreasury != address(0), "QV treasury not set");
+        require(poll.votingType == VotingType.QUADRATIC, "Not QV");
+        require(numVotes > 0, "0 votes");
+        require(address(pulseToken) != address(0), "No PULSE");
+        require(quadraticVotingTreasury != address(0), "No treasury");
 
         uint256 currentVotes = poll.votesOwned[msg.sender];
         uint256 cost = calculateQuadraticCost(currentVotes, numVotes);
@@ -546,7 +546,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         pollExists(pollId)
         returns (uint256)
     {
-        require(polls[pollId].votingType == VotingType.QUADRATIC, "Not a quadratic poll");
+        require(polls[pollId].votingType == VotingType.QUADRATIC, "Not QV");
         uint256 currentVotes = polls[pollId].votesOwned[voter];
         return calculateQuadraticCost(currentVotes, numVotes);
     }
@@ -577,8 +577,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         pollActive(pollId)
         nonReentrant
     {
-        require(msg.value > 0, "Must send ETH to fund");
-        require(polls[pollId].fundingToken == address(0), "Wrong token");
+        require(msg.value > 0, "Need ETH");
+        require(polls[pollId].fundingToken == address(0), "Bad tok");
 
         // Calculate platform fee
         uint256 platformFee = calculatePlatformFee(msg.value);
@@ -587,7 +587,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         // Send platform fee to treasury
         if (platformFee > 0 && platformTreasury != address(0)) {
             (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
-            require(feeSuccess, "Fee transfer failed");
+            require(feeSuccess, "Fee failed");
             emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
         }
 
@@ -615,9 +615,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         pollActive(pollId)
         nonReentrant
     {
-        require(whitelistedTokens[token], "Token not whitelisted");
+        require(whitelistedTokens[token], "Bad token");
         require(amount > 0, "Amount is 0");
-        require(polls[pollId].fundingToken == token, "Wrong token");
+        require(polls[pollId].fundingToken == token, "Bad tok");
 
         // Transfer full amount from user
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
@@ -647,26 +647,28 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can withdraw"
+            "Denied"
         );
-        require(
-            block.timestamp >= polls[pollId].endTime,
-            "Poll must be ended to withdraw"
-        );
+        // Allow if: ended OR closed OR claim expired
+        bool canWithdraw = block.timestamp >= polls[pollId].endTime ||
+            polls[pollId].status >= PollStatus.CLOSED ||
+            (pollClaimDeadline[pollId] > 0 && block.timestamp > pollClaimDeadline[pollId]);
+        require(canWithdraw, "Not ready");
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 balance = pollTokenBalances[pollId][tokens[i]];
-            if (balance > 0) {
-                pollTokenBalances[pollId][tokens[i]] = 0;
+            // Use getWithdrawableAmount to protect voter rewards
+            uint256 withdrawable = getWithdrawableAmount(pollId, tokens[i]);
+            if (withdrawable > 0) {
+                pollTokenBalances[pollId][tokens[i]] -= withdrawable;
 
                 if (tokens[i] == address(0)) {
-                    (bool success, ) = recipient.call{value: balance}("");
-                    require(success, "ETH transfer failed");
+                    (bool success, ) = recipient.call{value: withdrawable}("");
+                    require(success, "ETH fail");
                 } else {
-                    IERC20(tokens[i]).safeTransfer(recipient, balance);
+                    IERC20(tokens[i]).safeTransfer(recipient, withdrawable);
                 }
 
-                emit FundsWithdrawn(pollId, recipient, tokens[i], balance);
+                emit FundsWithdrawn(pollId, recipient, tokens[i], withdrawable);
             }
         }
     }
@@ -677,7 +679,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set distribution mode"
+            "Denied"
         );
 
         polls[pollId].distributionMode = mode;
@@ -696,19 +698,19 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can distribute rewards"
+            "Denied"
         );
         require(
             block.timestamp >= polls[pollId].endTime,
-            "Poll must be ended to distribute rewards"
+            "Not ended"
         );
         require(
             polls[pollId].distributionMode == DistributionMode.MANUAL_PUSH ||
             polls[pollId].distributionMode == DistributionMode.AUTOMATED,
-            "Distribution mode must be MANUAL_PUSH or AUTOMATED"
+            "Bad mode"
         );
-        require(recipients.length == amounts.length, "Array mismatch");
-        require(recipients.length > 0, "No recipients");
+        require(recipients.length == amounts.length, "Mismatch");
+        require(recipients.length > 0, "Empty");
 
         _validateDistributionAmounts(pollId, token, amounts);
         _executeDistribution(pollId, token, recipients, amounts);
@@ -720,7 +722,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             totalToDistribute += amounts[i];
         }
 
-        require(totalToDistribute <= pollTokenBalances[pollId][token], "Insufficient balance");
+        require(totalToDistribute <= pollTokenBalances[pollId][token], "Low balance");
     }
 
     function _executeDistribution(
@@ -733,7 +735,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         for (uint256 i = 0; i < recipients.length; i++) {
             if (amounts[i] == 0) continue;
 
-            require(pollTokenBalances[pollId][token] >= amounts[i], "Insufficient balance for distribution");
+            require(pollTokenBalances[pollId][token] >= amounts[i], "Low balance");
             pollTokenBalances[pollId][token] -= amounts[i];
             totalDistributed += amounts[i];
 
@@ -747,7 +749,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function _transferFunds(address recipient, address token, uint256 amount) private {
         if (token == address(0)) {
             (bool success, ) = recipient.call{value: amount}("");
-            require(success, "ETH transfer failed");
+            require(success, "ETH fail");
         } else {
             IERC20(token).safeTransfer(recipient, amount);
         }
@@ -756,10 +758,15 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function closePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can close poll"
+            "Denied"
         );
-        require(polls[pollId].status != PollStatus.CLOSED, "Poll is already closed");
+        require(polls[pollId].status != PollStatus.CLOSED, "Closed");
         _setStatus(pollId, PollStatus.CLOSED);
+
+        // If closing early, set endTime to now so time-based checks (withdraw, etc.) work
+        if (block.timestamp < polls[pollId].endTime) {
+            polls[pollId].endTime = block.timestamp;
+        }
 
         // Auto-set claim deadline if default grace period is configured and no deadline set yet
         if (defaultClaimGracePeriod > 0 && pollClaimDeadline[pollId] == 0) {
@@ -777,10 +784,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setForClaiming(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set for claiming"
+            "Denied"
         );
-        require(polls[pollId].status == PollStatus.CLOSED, "Poll must be closed");
-        require(block.timestamp >= polls[pollId].endTime, "Poll must have ended");
+        require(polls[pollId].status == PollStatus.CLOSED, "Not closed");
+        require(block.timestamp >= polls[pollId].endTime, "Not ended");
         _setStatus(pollId, PollStatus.FOR_CLAIMING);
     }
 
@@ -792,9 +799,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function pausePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can pause poll"
+            "Denied"
         );
-        require(polls[pollId].status == PollStatus.ACTIVE, "Only active polls can be paused");
+        require(polls[pollId].status == PollStatus.ACTIVE, "Not active");
         _setStatus(pollId, PollStatus.PAUSED);
         emit PollPaused(pollId, block.timestamp);
     }
@@ -807,10 +814,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function resumePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can resume poll"
+            "Denied"
         );
-        require(polls[pollId].status == PollStatus.PAUSED, "Only paused polls can be resumed");
-        require(block.timestamp < polls[pollId].endTime, "Cannot resume expired poll");
+        require(polls[pollId].status == PollStatus.PAUSED, "Not paused");
+        require(block.timestamp < polls[pollId].endTime, "Expired");
         // Resume to previous status (should be ACTIVE)
         PollStatus resumeToStatus = polls[pollId].previousStatus;
         if (resumeToStatus == PollStatus.PAUSED) {
@@ -829,15 +836,15 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function publishPoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can publish poll"
+            "Denied"
         );
-        require(polls[pollId].status == PollStatus.DRAFT, "Only draft polls can be published");
+        require(polls[pollId].status == PollStatus.DRAFT, "Not draft");
 
         // Convert stored duration to actual endTime
         uint256 duration = polls[pollId].endTime; // This was storing duration temporarily
         require(
             duration >= MIN_POLL_DURATION && duration <= MAX_POLL_DURATION,
-            "Invalid poll duration"
+            "Bad duration"
         );
         polls[pollId].endTime = block.timestamp + duration;
 
@@ -854,11 +861,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function finalizePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can finalize poll"
+            "Denied"
         );
         require(
             polls[pollId].status == PollStatus.FOR_CLAIMING,
-            "Poll must be in FOR_CLAIMING status to finalize"
+            "Not claimable"
         );
         _setStatus(pollId, PollStatus.FINALIZED);
         emit PollFinalized(pollId, block.timestamp);
@@ -874,9 +881,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setClaimDeadline(uint256 pollId, uint256 deadline) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set deadline"
+            "Denied"
         );
-        require(deadline > block.timestamp, "Deadline must be in future");
+        require(deadline > block.timestamp, "Past deadline");
         pollClaimDeadline[pollId] = deadline;
         emit ClaimDeadlineSet(pollId, deadline);
     }
@@ -888,7 +895,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setDefaultClaimGracePeriod(uint256 gracePeriod) external onlyOwner {
         require(
             gracePeriod == 0 || (gracePeriod >= MIN_GRACE_PERIOD && gracePeriod <= MAX_GRACE_PERIOD),
-            "Invalid grace period"
+            "Bad grace"
         );
         defaultClaimGracePeriod = gracePeriod;
         emit DefaultClaimGracePeriodSet(gracePeriod);
@@ -914,6 +921,50 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     }
 
     /**
+     * @notice Calculate rewards owed to voters (voters × rewardPerResponse)
+     * @param pollId The poll ID
+     * @return Amount owed to voters that should be protected
+     */
+    function getOwedRewards(uint256 pollId) public view pollExists(pollId) returns (uint256) {
+        uint256 voterCount = pollVoterCount[pollId];
+        uint256 rewardPerResponse = pollRewardPerResponse[pollId];
+        uint256 distributed = pollDistributedAmount[pollId];
+
+        // Owed = (voters × reward) - already distributed
+        uint256 totalOwed = voterCount * rewardPerResponse;
+        if (totalOwed <= distributed) return 0;
+        return totalOwed - distributed;
+    }
+
+    /**
+     * @notice Calculate amount available for immediate withdrawal/donation
+     * @dev Before grace period: only unused funds. After grace period: everything.
+     * @param pollId The poll ID
+     * @param token Token address (use address(0) for ETH)
+     * @return Amount that can be withdrawn/donated right now
+     */
+    function getWithdrawableAmount(uint256 pollId, address token) public view pollExists(pollId) returns (uint256) {
+        uint256 balance = pollTokenBalances[pollId][token];
+        if (balance == 0) return 0;
+
+        // After grace period expires, everything is withdrawable
+        if (isClaimPeriodExpired(pollId)) {
+            return balance;
+        }
+
+        // Before grace period: protect owed rewards
+        // Only check for the poll's funding token (rewards are in this token)
+        if (token == polls[pollId].fundingToken) {
+            uint256 owedRewards = getOwedRewards(pollId);
+            if (balance <= owedRewards) return 0;
+            return balance - owedRewards;
+        }
+
+        // For other tokens, full balance is withdrawable
+        return balance;
+    }
+
+    /**
      * @notice Donate remaining poll funds to the platform treasury
      * @param pollId The poll ID
      * @param tokens Array of token addresses to donate (use address(0) for ETH)
@@ -925,29 +976,119 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can donate"
+            "Denied"
         );
-        require(
-            block.timestamp >= polls[pollId].endTime,
-            "Poll must be ended to donate"
-        );
-        require(platformTreasury != address(0), "Treasury not set");
+        // Allow if: ended OR closed OR claim expired
+        bool canDonate = block.timestamp >= polls[pollId].endTime ||
+            polls[pollId].status >= PollStatus.CLOSED ||
+            (pollClaimDeadline[pollId] > 0 && block.timestamp > pollClaimDeadline[pollId]);
+        require(canDonate, "Not ready");
+        require(platformTreasury != address(0), "No treasury");
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 balance = pollTokenBalances[pollId][tokens[i]];
-            if (balance > 0) {
-                pollTokenBalances[pollId][tokens[i]] = 0;
+            // Use getWithdrawableAmount to protect voter rewards
+            uint256 donatable = getWithdrawableAmount(pollId, tokens[i]);
+            if (donatable > 0) {
+                pollTokenBalances[pollId][tokens[i]] -= donatable;
 
                 if (tokens[i] == address(0)) {
-                    (bool success, ) = platformTreasury.call{value: balance}("");
-                    require(success, "ETH transfer failed");
+                    (bool success, ) = platformTreasury.call{value: donatable}("");
+                    require(success, "ETH fail");
                 } else {
-                    IERC20(tokens[i]).safeTransfer(platformTreasury, balance);
+                    IERC20(tokens[i]).safeTransfer(platformTreasury, donatable);
                 }
 
-                emit DonatedToTreasury(pollId, tokens[i], balance);
+                emit DonatedToTreasury(pollId, tokens[i], donatable);
             }
         }
+    }
+
+    // ============ Participant Claim Functions ============
+
+    /**
+     * @notice Allows a voter to claim their reward to their own wallet
+     * @param pollId The poll ID to claim rewards from
+     */
+    function claimReward(uint256 pollId) external pollExists(pollId) nonReentrant {
+        _claimRewardInternal(pollId, msg.sender);
+    }
+
+    function _claimRewardInternal(uint256 pollId, address recipient) internal {
+        Poll storage poll = polls[pollId];
+
+        require(poll.hasVoted[msg.sender], "Not voted");
+        require(!poll.rewardsClaimed[msg.sender], "Claimed");
+        require(
+            block.timestamp >= poll.endTime ||
+            poll.status == PollStatus.FOR_CLAIMING ||
+            poll.status == PollStatus.CLOSED,
+            "Not ended"
+        );
+        require(!isClaimPeriodExpired(pollId), "Expired");
+
+        uint256 rewardAmount = pollRewardPerResponse[pollId];
+        require(rewardAmount > 0, "No reward");
+
+        address token = poll.fundingToken;
+        require(pollTokenBalances[pollId][token] >= rewardAmount, "No funds");
+
+        poll.rewardsClaimed[msg.sender] = true;
+        pollTokenBalances[pollId][token] -= rewardAmount;
+        pollDistributedAmount[pollId] += rewardAmount;
+
+        if (token == address(0)) {
+            (bool success, ) = recipient.call{value: rewardAmount}("");
+            require(success, "Failed");
+        } else {
+            IERC20(token).safeTransfer(recipient, rewardAmount);
+        }
+
+        emit RewardClaimed(pollId, msg.sender, rewardAmount, token, block.timestamp);
+    }
+
+    /**
+     * @notice Allows a voter to claim their reward to a specific address (for SideShift)
+     * @param pollId The poll ID to claim rewards from
+     * @param recipient The address to receive the reward
+     */
+    function claimRewardTo(uint256 pollId, address recipient) external pollExists(pollId) nonReentrant {
+        require(recipient != address(0), "Bad addr");
+        _claimRewardInternal(pollId, recipient);
+    }
+
+    /**
+     * @notice Check if a user has claimed their reward
+     * @param pollId The poll ID
+     * @param user The user address
+     * @return True if the user has claimed
+     */
+    function hasClaimedReward(uint256 pollId, address user) external view pollExists(pollId) returns (bool) {
+        return polls[pollId].rewardsClaimed[user];
+    }
+
+    /**
+     * @notice Get claimable reward amount for a user
+     * @param pollId The poll ID
+     * @param user The user address
+     * @return amount The claimable amount (0 if not eligible or already claimed)
+     */
+    function getClaimableReward(uint256 pollId, address user) external view pollExists(pollId) returns (uint256 amount) {
+        Poll storage poll = polls[pollId];
+
+        // Not a voter
+        if (!poll.hasVoted[user]) return 0;
+
+        // Already claimed
+        if (poll.rewardsClaimed[user]) return 0;
+
+        // Poll not ended
+        if (block.timestamp < poll.endTime && poll.status != PollStatus.FOR_CLAIMING && poll.status != PollStatus.CLOSED) return 0;
+
+        // Claim period expired
+        if (isClaimPeriodExpired(pollId)) return 0;
+
+        // Return reward amount
+        return pollRewardPerResponse[pollId];
     }
 
     /**
@@ -957,9 +1098,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
      * @return expectedDistribution Expected distribution based on expectedResponses × rewardPerResponse
      * @return actualParticipants Number of actual voters
      * @return distributed Total amount already distributed
-     * @return remaining Remaining balance available for withdrawal/donation
+     * @return remaining Remaining balance in poll
      * @return claimDeadline Claim deadline timestamp (0 if not set)
      * @return claimPeriodExpired Whether the claim period has expired
+     * @return owedToVoters Amount locked for voter rewards (until grace period expires)
+     * @return withdrawableNow Amount available for immediate withdrawal/donation
      */
     function getPollFundingBreakdown(uint256 pollId)
         external
@@ -972,16 +1115,21 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             uint256 distributed,
             uint256 remaining,
             uint256 claimDeadline,
-            bool claimPeriodExpired
+            bool claimPeriodExpired,
+            uint256 owedToVoters,
+            uint256 withdrawableNow
         )
     {
+        address fundingToken = polls[pollId].fundingToken;
         totalFunded = polls[pollId].totalFunding;
         expectedDistribution = pollExpectedResponses[pollId] * pollRewardPerResponse[pollId];
         actualParticipants = pollVoterCount[pollId];
         distributed = pollDistributedAmount[pollId];
-        remaining = pollTokenBalances[pollId][polls[pollId].fundingToken];
+        remaining = pollTokenBalances[pollId][fundingToken];
         claimDeadline = pollClaimDeadline[pollId];
         claimPeriodExpired = isClaimPeriodExpired(pollId);
+        owedToVoters = getOwedRewards(pollId);
+        withdrawableNow = getWithdrawableAmount(pollId, fundingToken);
     }
 
     /**
@@ -1018,8 +1166,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
      * Can be called in batches to avoid gas limits
      */
     function migratePolls(uint256 startPollId, uint256 endPollId) external onlyOwner {
-        require(startPollId < endPollId, "Invalid range");
-        require(endPollId <= nextPollId, "End poll ID exceeds total polls");
+        require(startPollId < endPollId, "Bad range");
+        require(endPollId <= nextPollId, "Out of range");
 
         for (uint256 i = startPollId; i < endPollId; i++) {
             Poll storage poll = polls[i];
@@ -1196,7 +1344,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
      * @param _feePercent Fee in basis points (e.g., 500 = 5%)
      */
     function setPlatformFee(uint256 _feePercent) external onlyOwner {
-        require(_feePercent <= MAX_PLATFORM_FEE, "Fee exceeds maximum");
+        require(_feePercent <= MAX_PLATFORM_FEE, "Fee too high");
         uint256 oldFee = platformFeePercent;
         platformFeePercent = _feePercent;
         emit PlatformFeeUpdated(oldFee, _feePercent);
@@ -1207,7 +1355,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
      * @param _treasury Address to receive platform fees
      */
     function setPlatformTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid treasury address");
+        require(_treasury != address(0), "Bad addr");
         address oldTreasury = platformTreasury;
         platformTreasury = _treasury;
         emit PlatformTreasuryUpdated(oldTreasury, _treasury);

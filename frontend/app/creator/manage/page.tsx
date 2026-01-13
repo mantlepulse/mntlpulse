@@ -228,6 +228,14 @@ export default function ManagePollsPage() {
     }
   }, [isWithdrawSuccess])
 
+  // Refetch when funds are donated to treasury
+  useEffect(() => {
+    if (isDonateSuccess) {
+      toast.success("Funds donated to treasury successfully!")
+      refetchClosedPolls()
+    }
+  }, [isDonateSuccess])
+
   // Handle title update
   const handleTitleUpdate = (pollId: bigint, newTitle: string) => {
     setDisplayTitles(prev => ({
