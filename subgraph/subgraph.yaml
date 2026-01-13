@@ -1,0 +1,68 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: PollsContract
+    network: mantle
+    source:
+      abi: PollsContract
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Poll
+        - Vote
+        - Funding
+        - Distribution
+        - User
+        - Token
+        - PollTokenBalance
+        - DistributionModeChange
+        - GlobalStats
+        - DailyStats
+        - TokenStats
+        - VotePurchase
+        - Stake
+        - StakeEvent
+        - PremiumSubscription
+        - SubscriptionEvent
+        - QuadraticVotingStats
+        - StakingStats
+        - SubscriptionStats
+      abis:
+        - name: PollsContract
+          file: ./abis/PollsContract.json
+      eventHandlers:
+        - event: PollCreated(indexed uint256,indexed address,string,uint256)
+          handler: handlePollCreated
+        - event: Voted(indexed uint256,indexed address,uint256)
+          handler: handleVoted
+        - event: PollFunded(indexed uint256,indexed address,address,uint256)
+          handler: handlePollFunded
+        - event: FundsWithdrawn(indexed uint256,indexed address,address,uint256)
+          handler: handleFundsWithdrawn
+        - event: DistributionModeSet(indexed uint256,uint8,uint256)
+          handler: handleDistributionModeSet
+        - event: RewardDistributed(indexed uint256,indexed
+            address,uint256,address,uint256)
+          handler: handleRewardDistributed
+        - event: RewardClaimed(indexed uint256,indexed address,uint256,address,uint256)
+          handler: handleRewardClaimed
+        - event: TokenWhitelisted(indexed address,bool)
+          handler: handleTokenWhitelisted
+        - event: PollStatusChanged(indexed uint256,indexed uint8,indexed uint8,uint256)
+          handler: handlePollStatusChanged
+        - event: PollPaused(indexed uint256,uint256)
+          handler: handlePollPaused
+        - event: PollResumed(indexed uint256,uint256)
+          handler: handlePollResumed
+        - event: VotesBought(indexed uint256,indexed
+            address,uint256,uint256,uint256,uint256)
+          handler: handleVotesBought
+      file: ./src/mapping.ts

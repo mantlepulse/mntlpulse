@@ -1,0 +1,14 @@
+{
+  "mantle": {
+    "PollsContract": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 1
+    }
+  },
+  "mantle-sepolia": {
+    "PollsContract": {
+      "address": "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
+      "startBlock": 33200000
+    }
+  }
+}
