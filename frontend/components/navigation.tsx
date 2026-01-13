@@ -124,6 +124,16 @@ export function Navigation() {
               >
                 Wallet
               </Link>
+              <Link
+                href="/dapp/donors"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "text-lg transition-colors hover:text-foreground/80",
+                  pathname === "/dapp/donors" ? "text-foreground font-semibold" : "text-foreground/60",
+                )}
+              >
+                Donors
+              </Link>
               {mounted && isConnected && (
                 <>
                   <Link
@@ -267,6 +277,15 @@ export function Navigation() {
             )}
           >
             Wallet
+          </Link>
+          <Link
+            href="/dapp/donors"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/dapp/donors" ? "text-foreground" : "text-foreground/60",
+            )}
+          >
+            Donors
           </Link>
           {mounted && isConnected && (
             <Link

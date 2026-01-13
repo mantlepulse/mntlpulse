@@ -44,6 +44,9 @@ export const useActivePolls = () => {
     functionName: CONTRACT_FUNCTIONS.GET_ACTIVE_POLLS,
     query: {
       enabled: !!contractAddress,
+      // Always refetch on mount to ensure fresh data after poll creation/changes
+      staleTime: 0,
+      refetchOnMount: 'always',
     },
   })
 }
@@ -236,6 +239,20 @@ export const useSetDefaultClaimGracePeriod = () => {
     hash,
     receipt,
   }
+}
+
+// Hook to get the platform treasury address
+export const usePlatformTreasury = () => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.PLATFORM_TREASURY,
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
 }
 
 // Hook to create a poll with funding in a single transaction

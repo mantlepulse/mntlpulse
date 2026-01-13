@@ -68,9 +68,9 @@ export function ClosedPollCard({
   const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
   const fundingAmount = Number(poll.totalFundingAmount) / Math.pow(10, decimals)
   const hasFunds = fundingAmount > 0
-  const canWithdraw = hasFunds && hasEnded
 
-  // Parse funding breakdown - wagmi returns tuple as array [totalFunded, expectedDistribution, actualParticipants, distributed, remaining, claimDeadline, claimPeriodExpired]
+  // Parse funding breakdown first so we can use claimPeriodExpired
+  // Note: This is moved up so we can use it in canWithdraw calculation
   const breakdown = fundingBreakdown ? {
     totalFunded: Number(fundingBreakdown[0]) / Math.pow(10, decimals),
     expectedDistribution: Number(fundingBreakdown[1]) / Math.pow(10, decimals),
@@ -80,6 +80,9 @@ export function ClosedPollCard({
     claimDeadline: fundingBreakdown[5] > 0n ? new Date(Number(fundingBreakdown[5]) * 1000) : null,
     claimPeriodExpired: fundingBreakdown[6],
   } : null
+
+  // Can withdraw if: has funds AND (poll has ended OR grace period has expired)
+  const canWithdraw = hasFunds && (hasEnded || breakdown?.claimPeriodExpired)
 
   // Calculate distribution progress percentage
   const distributionProgress = breakdown && breakdown.expectedDistribution > 0
@@ -329,9 +332,14 @@ export function ClosedPollCard({
               </>
             )}
           </div>
-          {hasFunds && !hasEnded && (
+          {hasFunds && !hasEnded && !breakdown?.claimPeriodExpired && (
             <p className="text-xs text-muted-foreground text-center">
               Funds unlock on {endDate.toLocaleDateString()} at {endDate.toLocaleTimeString()}
+            </p>
+          )}
+          {breakdown?.claimPeriodExpired && !hasEnded && (
+            <p className="text-xs text-green-600 text-center">
+              Grace period expired - funds available for withdrawal
             </p>
           )}
         </CardContent>
