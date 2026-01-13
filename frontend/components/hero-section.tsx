@@ -19,7 +19,7 @@ export function HeroSection() {
               </h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl text-pretty">
                 Your community's toolkit to stop debating and start deciding. Securely create, fund, and participate in
-                decentralized polls with Base blockchain.
+                decentralized polls with Mantle blockchain.
               </p>
             </div>
           </ScrollReveal>
@@ -48,7 +48,7 @@ export function HeroSection() {
                   <div className="text-center space-y-2">
                     <h3 className="font-semibold text-lg">Decentralized Voting</h3>
                     <p className="text-sm text-muted-foreground">
-                      Transparent, immutable polls powered by Base blockchain
+                      Transparent, immutable polls powered by Mantle blockchain
                     </p>
                   </div>
                 </div>

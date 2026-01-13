@@ -44,6 +44,11 @@ export const CONTRACT_FUNCTIONS = {
   POLL_DISTRIBUTED_AMOUNT: 'pollDistributedAmount',
   POLL_CLAIM_DEADLINE: 'pollClaimDeadline',
   POLL_VOTER_COUNT: 'pollVoterCount',
+  // Grace period
+  DEFAULT_CLAIM_GRACE_PERIOD: 'defaultClaimGracePeriod',
+  GET_DEFAULT_CLAIM_GRACE_PERIOD: 'getDefaultClaimGracePeriod',
+  MIN_GRACE_PERIOD: 'MIN_GRACE_PERIOD',
+  MAX_GRACE_PERIOD: 'MAX_GRACE_PERIOD',
 
   // Write functions
   CREATE_POLL: 'createPoll',
@@ -67,6 +72,8 @@ export const CONTRACT_FUNCTIONS = {
   // Refund system
   DONATE_TO_TREASURY: 'donateToTreasury',
   SET_CLAIM_DEADLINE: 'setClaimDeadline',
+  // Grace period (admin only)
+  SET_DEFAULT_CLAIM_GRACE_PERIOD: 'setDefaultClaimGracePeriod',
 } as const
 
 // Event names for listening to contract events
@@ -80,6 +87,8 @@ export const CONTRACT_EVENTS = {
   // Refund system
   DONATED_TO_TREASURY: 'DonatedToTreasury',
   CLAIM_DEADLINE_SET: 'ClaimDeadlineSet',
+  // Grace period
+  DEFAULT_CLAIM_GRACE_PERIOD_SET: 'DefaultClaimGracePeriodSet',
 } as const
 
 // Enums based on the smart contract

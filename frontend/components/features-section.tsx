@@ -8,7 +8,7 @@ const features = [
   {
     icon: Shield,
     title: "Secure & Transparent",
-    description: "All polls are recorded on Base blockchain for complete transparency and immutability",
+    description: "All polls are recorded on Mantle blockchain for complete transparency and immutability",
   },
   {
     icon: Zap,

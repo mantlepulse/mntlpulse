@@ -99,6 +99,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     mapping(uint256 => uint256) public pollClaimDeadline;
     mapping(uint256 => uint256) public pollVoterCount;
 
+    // Platform-level grace period configuration (added in upgrade)
+    uint256 public defaultClaimGracePeriod; // Default grace period in seconds (0 = no automatic deadline)
+    uint256 public constant MIN_GRACE_PERIOD = 1 hours;
+    uint256 public constant MAX_GRACE_PERIOD = 365 days;
+
     event PollCreated(
         uint256 indexed pollId,
         address indexed creator,
@@ -196,6 +201,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     // Refund/donation events
     event DonatedToTreasury(uint256 indexed pollId, address token, uint256 amount);
     event ClaimDeadlineSet(uint256 indexed pollId, uint256 deadline);
+    event DefaultClaimGracePeriodSet(uint256 gracePeriod);
 
     modifier pollExists(uint256 pollId) {
         require(pollId < nextPollId, "Poll does not exist");
@@ -306,9 +312,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         VotingType votingType,
         bool publish
     ) public returns (uint256) {
-        require(bytes(question).length > 0, "Question cannot be empty");
-        require(options.length >= 2, "Poll must have at least 2 options");
-        require(options.length <= 10, "Poll cannot have more than 10 options");
+        require(bytes(question).length > 0, "Empty question");
+        require(options.length >= 2, "Min 2 options");
+        require(options.length <= 10, "Max 10 options");
         require(
             duration >= MIN_POLL_DURATION && duration <= MAX_POLL_DURATION,
             "Invalid poll duration"
@@ -318,7 +324,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             "Funding token must be ETH or whitelisted"
         );
 
-        // Quadratic voting requires premium subscription or staking
+        // Premium required subscription or staking
         if (votingType == VotingType.QUADRATIC) {
             require(
                 address(premiumContract) != address(0),
@@ -326,7 +332,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             );
             require(
                 premiumContract.isPremiumOrStaked(msg.sender),
-                "Quadratic voting requires premium"
+                "Premium required"
             );
         }
 
@@ -405,7 +411,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
 
         // Handle funding if amount > 0
         if (fundingAmount > 0) {
-            require(fundingType == FundingType.SELF, "Only self-funded polls can be funded at creation");
+            require(fundingType == FundingType.SELF, "Self-fund only");
 
             // Calculate platform fee
             uint256 platformFee = calculatePlatformFee(fundingAmount);
@@ -418,7 +424,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
                 // Send platform fee to treasury
                 if (platformFee > 0 && platformTreasury != address(0)) {
                     (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
-                    require(feeSuccess, "Platform fee transfer failed");
+                    require(feeSuccess, "Fee transfer failed");
                     emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
                 }
 
@@ -429,7 +435,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             } else {
                 // ERC20 token funding
                 require(whitelistedTokens[fundingToken], "Token not whitelisted");
-                require(msg.value == 0, "ETH not accepted for token-funded polls");
+                require(msg.value == 0, "No ETH for token polls");
 
                 // Transfer full amount from user
                 IERC20(fundingToken).safeTransferFrom(msg.sender, address(this), fundingAmount);
@@ -458,7 +464,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         pollActive(pollId)
         validOption(pollId, optionIndex)
     {
-        require(polls[pollId].votingType == VotingType.LINEAR, "Use buyVotes for quadratic polls");
+        require(polls[pollId].votingType == VotingType.LINEAR, "Use buyVotes");
         require(!polls[pollId].hasVoted[msg.sender], "Already voted");
 
         polls[pollId].hasVoted[msg.sender] = true;
@@ -572,7 +578,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         nonReentrant
     {
         require(msg.value > 0, "Must send ETH to fund");
-        require(polls[pollId].fundingToken == address(0), "This poll only accepts a specific token");
+        require(polls[pollId].fundingToken == address(0), "Wrong token");
 
         // Calculate platform fee
         uint256 platformFee = calculatePlatformFee(msg.value);
@@ -581,7 +587,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         // Send platform fee to treasury
         if (platformFee > 0 && platformTreasury != address(0)) {
             (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
-            require(feeSuccess, "Platform fee transfer failed");
+            require(feeSuccess, "Fee transfer failed");
             emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
         }
 
@@ -610,8 +616,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         nonReentrant
     {
         require(whitelistedTokens[token], "Token not whitelisted");
-        require(amount > 0, "Amount must be greater than 0");
-        require(polls[pollId].fundingToken == token, "This poll only accepts a specific token");
+        require(amount > 0, "Amount is 0");
+        require(polls[pollId].fundingToken == token, "Wrong token");
 
         // Transfer full amount from user
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
@@ -701,8 +707,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             polls[pollId].distributionMode == DistributionMode.AUTOMATED,
             "Distribution mode must be MANUAL_PUSH or AUTOMATED"
         );
-        require(recipients.length == amounts.length, "Arrays length mismatch");
-        require(recipients.length > 0, "Must have at least one recipient");
+        require(recipients.length == amounts.length, "Array mismatch");
+        require(recipients.length > 0, "No recipients");
 
         _validateDistributionAmounts(pollId, token, amounts);
         _executeDistribution(pollId, token, recipients, amounts);
@@ -714,7 +720,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             totalToDistribute += amounts[i];
         }
 
-        require(totalToDistribute <= pollTokenBalances[pollId][token], "Insufficient token balance");
+        require(totalToDistribute <= pollTokenBalances[pollId][token], "Insufficient balance");
     }
 
     function _executeDistribution(
@@ -754,6 +760,13 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         );
         require(polls[pollId].status != PollStatus.CLOSED, "Poll is already closed");
         _setStatus(pollId, PollStatus.CLOSED);
+
+        // Auto-set claim deadline if default grace period is configured and no deadline set yet
+        if (defaultClaimGracePeriod > 0 && pollClaimDeadline[pollId] == 0) {
+            uint256 deadline = block.timestamp + defaultClaimGracePeriod;
+            pollClaimDeadline[pollId] = deadline;
+            emit ClaimDeadlineSet(pollId, deadline);
+        }
     }
 
     /**
@@ -866,6 +879,27 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         require(deadline > block.timestamp, "Deadline must be in future");
         pollClaimDeadline[pollId] = deadline;
         emit ClaimDeadlineSet(pollId, deadline);
+    }
+
+    /**
+     * @notice Set the default claim grace period for all new polls (owner only)
+     * @param gracePeriod Grace period in seconds (0 to disable automatic deadlines)
+     */
+    function setDefaultClaimGracePeriod(uint256 gracePeriod) external onlyOwner {
+        require(
+            gracePeriod == 0 || (gracePeriod >= MIN_GRACE_PERIOD && gracePeriod <= MAX_GRACE_PERIOD),
+            "Invalid grace period"
+        );
+        defaultClaimGracePeriod = gracePeriod;
+        emit DefaultClaimGracePeriodSet(gracePeriod);
+    }
+
+    /**
+     * @notice Get the default claim grace period
+     * @return The default grace period in seconds
+     */
+    function getDefaultClaimGracePeriod() external view returns (uint256) {
+        return defaultClaimGracePeriod;
     }
 
     /**

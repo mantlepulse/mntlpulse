@@ -193,6 +193,51 @@ export const useCalculatePlatformFee = (amount: bigint) => {
   })
 }
 
+// Hook to get the default claim grace period
+export const useDefaultClaimGracePeriod = () => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_DEFAULT_CLAIM_GRACE_PERIOD,
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+}
+
+// Hook to set the default claim grace period (admin only)
+export const useSetDefaultClaimGracePeriod = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setDefaultClaimGracePeriod = async (gracePeriodInSeconds: bigint) => {
+    if (!contractAddress) return
+
+    writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.SET_DEFAULT_CLAIM_GRACE_PERIOD,
+      args: [gracePeriodInSeconds],
+    })
+  }
+
+  return {
+    setDefaultClaimGracePeriod,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    hash,
+    receipt,
+  }
+}
+
 // Hook to create a poll with funding in a single transaction
 export const useCreatePollWithFunding = () => {
   const contractAddress = usePollsContractAddress()

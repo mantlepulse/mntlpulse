@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Shield, X, Settings } from "lucide-react"
+import { AlertCircle, Shield, X, Settings, Timer } from "lucide-react"
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
-import { usePollsContractAddress } from "@/lib/contracts/polls-contract-utils"
+import { usePollsContractAddress, useDefaultClaimGracePeriod, useSetDefaultClaimGracePeriod } from "@/lib/contracts/polls-contract-utils"
 import { POLLS_CONTRACT_ABI } from "@/lib/contracts/polls-contract"
 import { toast } from "sonner"
 
@@ -15,16 +15,43 @@ export default function AdminPage() {
   const [pollIdToClose, setPollIdToClose] = useState("")
   const [tokenAddress, setTokenAddress] = useState("")
   const [tokenStatus, setTokenStatus] = useState(true)
+  const [gracePeriodDays, setGracePeriodDays] = useState("")
 
   const { address, isConnected } = useAccount()
   const contractAddress = usePollsContractAddress()
-  
+
   // Check if current user is owner
   const { data: owner } = useReadContract({
     address: contractAddress,
     abi: POLLS_CONTRACT_ABI,
     functionName: 'owner',
   })
+
+  // Get current grace period
+  const { data: currentGracePeriod, refetch: refetchGracePeriod } = useDefaultClaimGracePeriod()
+
+  // Set grace period hook
+  const {
+    setDefaultClaimGracePeriod,
+    isPending: isGracePeriodPending,
+    isConfirming: isGracePeriodConfirming,
+    isSuccess: isGracePeriodSuccess,
+    error: gracePeriodError,
+  } = useSetDefaultClaimGracePeriod()
+
+  // Convert current grace period to days for display
+  const currentGracePeriodDays = currentGracePeriod
+    ? Number(currentGracePeriod) / (24 * 60 * 60)
+    : 0
+
+  // Refetch grace period after successful update
+  useEffect(() => {
+    if (isGracePeriodSuccess) {
+      toast.success("Grace period updated successfully!")
+      refetchGracePeriod()
+      setGracePeriodDays("")
+    }
+  }, [isGracePeriodSuccess, refetchGracePeriod])
 
   const { writeContract, data: hash, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
@@ -51,7 +78,7 @@ export default function AdminPage() {
 
   const whitelistToken = async () => {
     if (!tokenAddress || !contractAddress) return
-    
+
     try {
       await writeContract({
         address: contractAddress,
@@ -64,6 +91,28 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Whitelist token failed:", error)
       toast.error("Failed to whitelist token")
+    }
+  }
+
+  const handleSetGracePeriod = async () => {
+    const days = parseInt(gracePeriodDays)
+    if (isNaN(days) || days < 0) {
+      toast.error("Please enter a valid number of days")
+      return
+    }
+
+    // 0 means disable, otherwise must be between 1 and 365 days
+    if (days !== 0 && (days < 1 || days > 365)) {
+      toast.error("Grace period must be between 1 and 365 days (or 0 to disable)")
+      return
+    }
+
+    try {
+      const gracePeriodSeconds = BigInt(days * 24 * 60 * 60)
+      await setDefaultClaimGracePeriod(gracePeriodSeconds)
+    } catch (error) {
+      console.error("Set grace period failed:", error)
+      toast.error("Failed to set grace period")
     }
   }
 
@@ -185,12 +234,82 @@ export default function AdminPage() {
               />
               <Label htmlFor="tokenStatus">Enable token (uncheck to disable)</Label>
             </div>
-            <Button 
+            <Button
               onClick={whitelistToken}
               disabled={!tokenAddress || isPending || isConfirming}
             >
               {isPending || isConfirming ? "Processing..." : "Update Whitelist"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Default Claim Grace Period */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5" />
+              Default Claim Grace Period
+            </CardTitle>
+            <CardDescription>
+              Set the default grace period for poll rewards. When a poll is closed, participants will have this many days to claim their rewards before the creator can withdraw unclaimed funds.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <Label className="text-sm font-medium">Current Grace Period</Label>
+              <p className="text-lg font-semibold">
+                {currentGracePeriodDays === 0
+                  ? "Disabled (no automatic deadline)"
+                  : `${currentGracePeriodDays} days`}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gracePeriodDays">New Grace Period (days)</Label>
+              <Input
+                id="gracePeriodDays"
+                type="number"
+                min={0}
+                max={365}
+                placeholder="Enter days (0 to disable, 1-365 to enable)"
+                value={gracePeriodDays}
+                onChange={(e) => setGracePeriodDays(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Set to 0 to disable automatic deadline. Set 1-365 days for automatic claim deadline on poll closure.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {[7, 14, 30, 90].map((days) => (
+                <Button
+                  key={days}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGracePeriodDays(days.toString())}
+                >
+                  {days}d
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGracePeriodDays("0")}
+              >
+                Disable
+              </Button>
+            </div>
+
+            <Button
+              onClick={handleSetGracePeriod}
+              disabled={!gracePeriodDays || isGracePeriodPending || isGracePeriodConfirming}
+            >
+              {isGracePeriodPending || isGracePeriodConfirming ? "Processing..." : "Update Grace Period"}
+            </Button>
+
+            {gracePeriodError && (
+              <p className="text-sm text-red-500">Error: {gracePeriodError.message}</p>
+            )}
           </CardContent>
         </Card>
 
