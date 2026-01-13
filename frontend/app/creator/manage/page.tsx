@@ -137,8 +137,8 @@ export default function ManagePollsPage() {
         // Only include polls created by current user
         if (creator.toLowerCase() !== address.toLowerCase()) return null
 
-        // Get token symbol from address
-        const fundingTokenSymbol = getTokenSymbol(chainId, fundingToken) || "ETH"
+        // Get token symbol from address (MNT is the native token on Mantle, PULSE is default for polls)
+        const fundingTokenSymbol = getTokenSymbol(chainId, fundingToken) || "PULSE"
 
         return {
           id,
@@ -256,17 +256,17 @@ export default function ManagePollsPage() {
     // Group funding by token symbol with correct decimals
     const fundingByToken: Record<string, number> = {}
     myPolls.forEach((poll) => {
-      const symbol = poll.fundingTokenSymbol || "ETH"
+      const symbol = poll.fundingTokenSymbol || "PULSE"
       const decimals = TOKEN_INFO[symbol]?.decimals || 18
       const amount = Number(poll.totalFunding) / Math.pow(10, decimals)
       fundingByToken[symbol] = (fundingByToken[symbol] || 0) + amount
     })
 
-    // Format as "0.5 ETH, 100 USDC" or just the single token
+    // Format as "0.5 PULSE, 100 USDC" or just the single token
     const fundedDisplay = Object.entries(fundingByToken)
       .filter(([_, amount]) => amount > 0)
       .map(([symbol, amount]) => `${amount.toFixed(4)} ${symbol}`)
-      .join(", ") || "0 ETH"
+      .join(", ") || "0 PULSE"
 
     return {
       totalPolls,

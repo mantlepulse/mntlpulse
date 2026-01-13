@@ -134,7 +134,7 @@ export function useClosedPollsContract(
         status: (['active', 'closed', 'for_claiming', 'paused'] as const)[status] || 'closed',
         createdAt: new Date(), // Not available from contract
         fundingToken,
-        fundingTokenSymbol: getTokenSymbol(chainId, fundingToken) || 'ETH',
+        fundingTokenSymbol: getTokenSymbol(chainId, fundingToken) || 'PULSE',
       })
     })
 

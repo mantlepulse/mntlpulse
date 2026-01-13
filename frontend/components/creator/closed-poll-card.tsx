@@ -65,7 +65,7 @@ export function ClosedPollCard({
   const hasEnded = now >= endDate
 
   // Calculate funding amount
-  const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
+  const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "PULSE"]?.decimals || 18
   const fundingAmount = Number(poll.totalFundingAmount) / Math.pow(10, decimals)
   const hasFunds = fundingAmount > 0
 
@@ -174,7 +174,7 @@ export function ClosedPollCard({
                 {getStatusBadge()}
                 {hasFunds ? (
                   <Badge variant="outline" className="text-xs border-green-500 text-green-600">
-                    {fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                    {fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-xs">
@@ -243,11 +243,11 @@ export function ClosedPollCard({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="space-y-1">
                       <div className="text-muted-foreground">Total Funded</div>
-                      <div className="font-medium">{breakdown.totalFunded.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                      <div className="font-medium">{breakdown.totalFunded.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}</div>
                     </div>
                     <div className="space-y-1">
                       <div className="text-muted-foreground">Expected Distribution</div>
-                      <div className="font-medium">{breakdown.expectedDistribution.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                      <div className="font-medium">{breakdown.expectedDistribution.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}</div>
                     </div>
                     <div className="space-y-1">
                       <div className="text-muted-foreground">Actual Participants</div>
@@ -255,7 +255,7 @@ export function ClosedPollCard({
                     </div>
                     <div className="space-y-1">
                       <div className="text-muted-foreground">Distributed</div>
-                      <div className="font-medium">{breakdown.distributed.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}</div>
+                      <div className="font-medium">{breakdown.distributed.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}</div>
                     </div>
                   </div>
 
@@ -268,7 +268,7 @@ export function ClosedPollCard({
                           Locked for Voters
                         </span>
                         <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                          {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                          {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
                         </span>
                       </div>
                     )}
@@ -277,12 +277,12 @@ export function ClosedPollCard({
                         {breakdown.claimPeriodExpired ? "Total Withdrawable" : "Available Now"}
                       </span>
                       <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                        {breakdown.withdrawableNow.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                        {breakdown.withdrawableNow.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
                       </span>
                     </div>
                     {breakdown.owedToVoters > 0 && !breakdown.claimPeriodExpired && (
                       <p className="text-xs text-muted-foreground">
-                        {breakdown.owedToVoters.toFixed(2)} {poll.fundingTokenSymbol || "ETH"} is reserved for {breakdown.actualParticipants} voter{breakdown.actualParticipants !== 1 ? 's' : ''} until the grace period expires.
+                        {breakdown.owedToVoters.toFixed(2)} {poll.fundingTokenSymbol || "PULSE"} is reserved for {breakdown.actualParticipants} voter{breakdown.actualParticipants !== 1 ? 's' : ''} until the grace period expires.
                       </p>
                     )}
                   </div>
@@ -392,13 +392,13 @@ export function ClosedPollCard({
               <div>
                 <div className="text-sm text-muted-foreground">Amount to Withdraw</div>
                 <div className="text-lg font-semibold text-green-600">
-                  {breakdown?.withdrawableNow.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                  {breakdown?.withdrawableNow.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
                 </div>
               </div>
               {breakdown && breakdown.owedToVoters > 0 && !breakdown.claimPeriodExpired && (
                 <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
-                  {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "ETH"} is locked for voters until grace period expires
+                  {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"} is locked for voters until grace period expires
                 </div>
               )}
             </div>
@@ -450,13 +450,13 @@ export function ClosedPollCard({
               <div>
                 <div className="text-sm text-muted-foreground">Amount to Donate</div>
                 <div className="text-lg font-semibold text-green-600">
-                  {breakdown?.withdrawableNow.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                  {breakdown?.withdrawableNow.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"}
                 </div>
               </div>
               {breakdown && breakdown.owedToVoters > 0 && !breakdown.claimPeriodExpired && (
                 <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
-                  {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "ETH"} is locked for voters until grace period expires
+                  {breakdown.owedToVoters.toFixed(4)} {poll.fundingTokenSymbol || "PULSE"} is locked for voters until grace period expires
                 </div>
               )}
             </div>

@@ -50,8 +50,8 @@ export default function FundPollPage({ params }: PageProps) {
   const pollQuestion = pollData ? (pollData as any)[1] : ""
   const fundingToken = pollData ? (pollData as any)[9] : undefined
 
-  // Get token info
-  const fundingTokenSymbol = chainId && fundingToken ? getTokenSymbol(chainId, fundingToken) || 'ETH' : 'ETH'
+  // Get token info (PULSE is default for poll funding on Mantle)
+  const fundingTokenSymbol = chainId && fundingToken ? getTokenSymbol(chainId, fundingToken) || 'PULSE' : 'PULSE'
   const supportedTokens = getSupportedTokens(chainId)
   const selectedTokenAddress = supportedTokens[fundingTokenSymbol] as Address
   const tokenInfo = getTokenInfo(fundingTokenSymbol)

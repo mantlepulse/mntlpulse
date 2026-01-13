@@ -161,7 +161,7 @@ export default function DappPage() {
 
   // Calculate total rewards grouped by token
   const rewardsByToken = polls.reduce((acc, poll) => {
-    const token = poll.fundingToken?.toUpperCase() || 'ETH'
+    const token = poll.fundingToken?.toUpperCase() || 'PULSE'
     acc[token] = (acc[token] || 0) + poll.totalReward
     return acc
   }, {} as Record<string, number>)
@@ -169,17 +169,17 @@ export default function DappPage() {
   // Format total rewards display string
   const formatTotalRewardsDisplay = () => {
     const parts: string[] = []
-    if (rewardsByToken['ETH'] && rewardsByToken['ETH'] > 0) {
-      parts.push(formatRewardDisplay(rewardsByToken['ETH'], 'ETH'))
+    if (rewardsByToken['PULSE'] && rewardsByToken['PULSE'] > 0) {
+      parts.push(formatRewardDisplay(rewardsByToken['PULSE'], 'PULSE'))
     }
     if (rewardsByToken['USDC'] && rewardsByToken['USDC'] > 0) {
       parts.push(formatRewardDisplay(rewardsByToken['USDC'], 'USDC'))
     }
-    if (rewardsByToken['PULSE'] && rewardsByToken['PULSE'] > 0) {
-      parts.push(formatRewardDisplay(rewardsByToken['PULSE'], 'PULSE'))
+    if (rewardsByToken['MNT'] && rewardsByToken['MNT'] > 0) {
+      parts.push(formatRewardDisplay(rewardsByToken['MNT'], 'MNT'))
     }
-    // If no rewards, show 0 ETH
-    if (parts.length === 0) return '0.0 ETH'
+    // If no rewards, show 0 PULSE
+    if (parts.length === 0) return '0.0 PULSE'
     return parts.join(' + ')
   }
 

@@ -1,11 +1,11 @@
 /**
  * Data Source Context
- * Currently forced to contract-only mode (subgraph disabled until Mantle indexer is available)
+ * Allows switching between contract-direct and subgraph data sources
  */
 
 "use client"
 
-import { createContext, useContext, ReactNode } from "react"
+import { createContext, useContext, useState, ReactNode, useEffect } from "react"
 
 export type DataSource = "contract" | "subgraph"
 
@@ -15,31 +15,48 @@ interface DataSourceContextType {
   toggleDataSource: () => void
   isSubgraph: boolean
   isContract: boolean
-  isSubgraphDisabled: boolean // New flag to indicate subgraph is disabled
+  isSubgraphDisabled: boolean
 }
 
 const DataSourceContext = createContext<DataSourceContextType | undefined>(undefined)
 
-export function DataSourceProvider({ children }: { children: ReactNode }) {
-  // Force contract-only mode - subgraph disabled until Mantle indexer is available
-  const dataSource: DataSource = "contract"
+// Key for localStorage persistence
+const DATA_SOURCE_STORAGE_KEY = "mntlpulse-data-source"
 
-  // No-op functions since we're forcing contract mode
-  const setDataSource = () => {
-    console.warn("Subgraph is currently disabled. Using contract data source only.")
+export function DataSourceProvider({ children }: { children: ReactNode }) {
+  // Initialize from localStorage or environment variable
+  const [dataSource, setDataSourceState] = useState<DataSource>(() => {
+    // Default to environment variable or "contract"
+    const envDefault = process.env.NEXT_PUBLIC_DEFAULT_DATA_SOURCE as DataSource
+    return envDefault === "subgraph" ? "subgraph" : "contract"
+  })
+
+  // Load from localStorage on mount (client-side only)
+  useEffect(() => {
+    const stored = localStorage.getItem(DATA_SOURCE_STORAGE_KEY)
+    if (stored === "subgraph" || stored === "contract") {
+      setDataSourceState(stored)
+    }
+  }, [])
+
+  const setDataSource = (source: DataSource) => {
+    setDataSourceState(source)
+    localStorage.setItem(DATA_SOURCE_STORAGE_KEY, source)
+    console.log(`[DataSource] Switched to ${source}`)
   }
 
   const toggleDataSource = () => {
-    console.warn("Subgraph is currently disabled. Using contract data source only.")
+    const newSource = dataSource === "contract" ? "subgraph" : "contract"
+    setDataSource(newSource)
   }
 
   const value: DataSourceContextType = {
     dataSource,
     setDataSource,
     toggleDataSource,
-    isSubgraph: false,
-    isContract: true,
-    isSubgraphDisabled: true,
+    isSubgraph: dataSource === "subgraph",
+    isContract: dataSource === "contract",
+    isSubgraphDisabled: false, // Subgraph is now enabled
   }
 
   return (

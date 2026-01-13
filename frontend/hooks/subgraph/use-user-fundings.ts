@@ -65,6 +65,9 @@ function formatFunding(funding: SubgraphUserFunding): FormattedUserFunding {
   const decimals = funding.token.decimals || 18
   const amountFormatted = Number(funding.amount) / Math.pow(10, decimals)
 
+  // Extract funder address from nested User entity
+  const funderAddress = typeof funding.funder === 'object' ? funding.funder.id : funding.funder
+
   return {
     id: funding.id,
     pollId: funding.poll.pollId,
@@ -73,7 +76,7 @@ function formatFunding(funding: SubgraphUserFunding): FormattedUserFunding {
     pollTotalVotes: Number(funding.poll.voteCount),
     pollTotalFunding: Number(funding.poll.totalFundingAmount) / Math.pow(10, decimals),
     pollEndTime: new Date(Number(funding.poll.endTime) * 1000).toISOString(),
-    funder: funding.funder,
+    funder: funderAddress,
     tokenAddress: funding.token.id,
     tokenSymbol: funding.token.symbol || getTokenSymbol(funding.token.id),
     tokenDecimals: decimals,

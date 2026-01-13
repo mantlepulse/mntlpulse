@@ -87,8 +87,8 @@ export function PollCard({
     return "Active"
   }
 
-  // Calculate reward fund
-  const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "ETH"]?.decimals || 18
+  // Calculate reward fund (PULSE is default for poll funding on Mantle)
+  const decimals = TOKEN_INFO[poll.fundingTokenSymbol || "PULSE"]?.decimals || 18
   const fundingAmount = Number(poll.totalFunding) / Math.pow(10, decimals)
 
   const handleModeChange = async (newMode: string) => {
