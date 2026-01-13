@@ -70,15 +70,15 @@ export function ClosedPollCard({
   const hasFunds = fundingAmount > 0
   const canWithdraw = hasFunds && hasEnded
 
-  // Parse funding breakdown
+  // Parse funding breakdown - wagmi returns tuple as array [totalFunded, expectedDistribution, actualParticipants, distributed, remaining, claimDeadline, claimPeriodExpired]
   const breakdown = fundingBreakdown ? {
-    totalFunded: Number(fundingBreakdown.totalFunded) / Math.pow(10, decimals),
-    expectedDistribution: Number(fundingBreakdown.expectedDistribution) / Math.pow(10, decimals),
-    actualParticipants: Number(fundingBreakdown.actualParticipants),
-    distributed: Number(fundingBreakdown.distributed) / Math.pow(10, decimals),
-    remaining: Number(fundingBreakdown.remaining) / Math.pow(10, decimals),
-    claimDeadline: fundingBreakdown.claimDeadline > 0n ? new Date(Number(fundingBreakdown.claimDeadline) * 1000) : null,
-    claimPeriodExpired: fundingBreakdown.claimPeriodExpired,
+    totalFunded: Number(fundingBreakdown[0]) / Math.pow(10, decimals),
+    expectedDistribution: Number(fundingBreakdown[1]) / Math.pow(10, decimals),
+    actualParticipants: Number(fundingBreakdown[2]),
+    distributed: Number(fundingBreakdown[3]) / Math.pow(10, decimals),
+    remaining: Number(fundingBreakdown[4]) / Math.pow(10, decimals),
+    claimDeadline: fundingBreakdown[5] > 0n ? new Date(Number(fundingBreakdown[5]) * 1000) : null,
+    claimPeriodExpired: fundingBreakdown[6],
   } : null
 
   // Calculate distribution progress percentage

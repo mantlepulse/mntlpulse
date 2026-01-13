@@ -39,10 +39,22 @@ export default function AdminPage() {
     error: gracePeriodError,
   } = useSetDefaultClaimGracePeriod()
 
-  // Convert current grace period to days for display
-  const currentGracePeriodDays = currentGracePeriod
-    ? Number(currentGracePeriod) / (24 * 60 * 60)
-    : 0
+  // Convert current grace period for display
+  const currentGracePeriodSeconds = currentGracePeriod ? Number(currentGracePeriod) : 0
+  const currentGracePeriodHours = currentGracePeriodSeconds / 3600
+  const currentGracePeriodDays = currentGracePeriodSeconds / (24 * 60 * 60)
+
+  // Format grace period display - show hours if less than 1 day, otherwise show days
+  const formatGracePeriod = (seconds: number) => {
+    if (seconds === 0) return "Disabled (no automatic deadline)"
+    const hours = seconds / 3600
+    const days = seconds / (24 * 3600)
+    if (days >= 1) {
+      return `${days} day${days !== 1 ? 's' : ''}`
+    } else {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`
+    }
+  }
 
   // Refetch grace period after successful update
   useEffect(() => {
@@ -95,21 +107,26 @@ export default function AdminPage() {
   }
 
   const handleSetGracePeriod = async () => {
-    const days = parseInt(gracePeriodDays)
+    const days = parseFloat(gracePeriodDays)
     if (isNaN(days) || days < 0) {
-      toast.error("Please enter a valid number of days")
+      toast.error("Please enter a valid number")
       return
     }
 
-    // 0 means disable, otherwise must be between 1 and 365 days
-    if (days !== 0 && (days < 1 || days > 365)) {
-      toast.error("Grace period must be between 1 and 365 days (or 0 to disable)")
+    // Convert to seconds
+    const gracePeriodSeconds = Math.round(days * 24 * 60 * 60)
+
+    // 0 means disable, otherwise must be at least 1 hour (3600 seconds) and at most 365 days
+    const minSeconds = 3600 // 1 hour
+    const maxSeconds = 365 * 24 * 60 * 60 // 365 days
+
+    if (gracePeriodSeconds !== 0 && (gracePeriodSeconds < minSeconds || gracePeriodSeconds > maxSeconds)) {
+      toast.error("Grace period must be at least 1 hour and at most 365 days (or 0 to disable)")
       return
     }
 
     try {
-      const gracePeriodSeconds = BigInt(days * 24 * 60 * 60)
-      await setDefaultClaimGracePeriod(gracePeriodSeconds)
+      await setDefaultClaimGracePeriod(BigInt(gracePeriodSeconds))
     } catch (error) {
       console.error("Set grace period failed:", error)
       toast.error("Failed to set grace period")
@@ -258,9 +275,7 @@ export default function AdminPage() {
             <div className="p-3 bg-muted rounded-lg">
               <Label className="text-sm font-medium">Current Grace Period</Label>
               <p className="text-lg font-semibold">
-                {currentGracePeriodDays === 0
-                  ? "Disabled (no automatic deadline)"
-                  : `${currentGracePeriodDays} days`}
+                {formatGracePeriod(currentGracePeriodSeconds)}
               </p>
             </div>
 
@@ -280,10 +295,22 @@ export default function AdminPage() {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {/* Hour presets */}
+              {[1, 6, 12].map((hours) => (
+                <Button
+                  key={`${hours}h`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGracePeriodDays((hours / 24).toString())}
+                >
+                  {hours}h
+                </Button>
+              ))}
+              {/* Day presets */}
               {[7, 14, 30, 90].map((days) => (
                 <Button
-                  key={days}
+                  key={`${days}d`}
                   variant="outline"
                   size="sm"
                   onClick={() => setGracePeriodDays(days.toString())}
