@@ -1,7 +1,8 @@
 import { Address } from 'viem'
-import PollsContractArtifact from './PollsContract.abi.json'
+import PollsContractABI from './PollsContract.abi.json'
 
-export const POLLS_CONTRACT_ABI = PollsContractArtifact.abi as const
+// ABI is imported directly as an array (not as .abi property)
+export const POLLS_CONTRACT_ABI = PollsContractABI as const
 
 import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS, getContractAddress } from './contract-config'
 

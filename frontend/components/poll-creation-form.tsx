@@ -353,6 +353,26 @@ export function PollCreationForm() {
           ? parseUnits(data.rewardPerResponse.toString(), decimals)
           : BigInt(0)
 
+        console.log("=== POLL CREATION DEBUG ===")
+        console.log("Question:", data.title)
+        console.log("Options:", validOptions)
+        console.log("Duration (hours):", durationInHours)
+        console.log("Duration (seconds):", durationInHours * 3600)
+        console.log("Funding token address:", fundingTokenAddress)
+        console.log("Funding type:", fundingTypeEnum, "(0=NONE, 1=SELF, 2=COMMUNITY)")
+        console.log("Voting type:", votingTypeEnum, "(0=LINEAR, 1=QUADRATIC)")
+        console.log("Publish:", data.publish)
+        console.log("Funding amount (wei):", fundingAmountWei.toString())
+        console.log("Expected responses:", expectedResponsesValue.toString())
+        console.log("Reward per response (wei):", rewardPerResponseWei.toString())
+        console.log("Token decimals:", decimals)
+        console.log("Total funding (display):", totalFunding)
+        console.log("Is ETH:", fundingTokenAddress === '0x0000000000000000000000000000000000000000')
+        console.log("Current allowance:", currentAllowance.toString())
+        console.log("Needs approval:", needsTokenApproval)
+        console.log("Contract address:", contractAddress)
+        console.log("===========================")
+
         // Create poll with funding in a single transaction
         await createPollWithFunding(
           data.title,
@@ -421,10 +441,20 @@ export function PollCreationForm() {
     }
   }, [isApproveSuccess, refetchAllowance])
 
-  // Handle error
-  if (error) {
-    console.error("Contract error:", error)
-  }
+  // Handle contract errors
+  useEffect(() => {
+    if (error) {
+      console.error("Contract error:", error)
+      toast.error(`Contract error: ${error.message}`)
+    }
+  }, [error])
+
+  useEffect(() => {
+    if (fundingError) {
+      console.error("Funding error:", fundingError)
+      toast.error(`Transaction failed: ${fundingError.message}`)
+    }
+  }, [fundingError])
 
   // Step 1: Basic Information
   const renderStep1 = () => (
