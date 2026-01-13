@@ -647,12 +647,13 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can withdraw"
+            "Unauthorized"
         );
-        require(
-            block.timestamp >= polls[pollId].endTime,
-            "Poll must be ended to withdraw"
-        );
+        // Allow if: ended OR closed OR claim expired
+        bool canWithdraw = block.timestamp >= polls[pollId].endTime ||
+            polls[pollId].status >= PollStatus.CLOSED ||
+            (pollClaimDeadline[pollId] > 0 && block.timestamp > pollClaimDeadline[pollId]);
+        require(canWithdraw, "Not ready");
 
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 balance = pollTokenBalances[pollId][tokens[i]];
@@ -677,7 +678,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set distribution mode"
+            "Unauthorized"
         );
 
         polls[pollId].distributionMode = mode;
@@ -696,7 +697,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can distribute rewards"
+            "Unauthorized"
         );
         require(
             block.timestamp >= polls[pollId].endTime,
@@ -756,10 +757,15 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function closePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can close poll"
+            "Unauthorized"
         );
         require(polls[pollId].status != PollStatus.CLOSED, "Poll is already closed");
         _setStatus(pollId, PollStatus.CLOSED);
+
+        // If closing early, set endTime to now so time-based checks (withdraw, etc.) work
+        if (block.timestamp < polls[pollId].endTime) {
+            polls[pollId].endTime = block.timestamp;
+        }
 
         // Auto-set claim deadline if default grace period is configured and no deadline set yet
         if (defaultClaimGracePeriod > 0 && pollClaimDeadline[pollId] == 0) {
@@ -777,7 +783,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setForClaiming(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set for claiming"
+            "Unauthorized"
         );
         require(polls[pollId].status == PollStatus.CLOSED, "Poll must be closed");
         require(block.timestamp >= polls[pollId].endTime, "Poll must have ended");
@@ -792,7 +798,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function pausePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can pause poll"
+            "Unauthorized"
         );
         require(polls[pollId].status == PollStatus.ACTIVE, "Only active polls can be paused");
         _setStatus(pollId, PollStatus.PAUSED);
@@ -807,7 +813,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function resumePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can resume poll"
+            "Unauthorized"
         );
         require(polls[pollId].status == PollStatus.PAUSED, "Only paused polls can be resumed");
         require(block.timestamp < polls[pollId].endTime, "Cannot resume expired poll");
@@ -829,7 +835,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function publishPoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can publish poll"
+            "Unauthorized"
         );
         require(polls[pollId].status == PollStatus.DRAFT, "Only draft polls can be published");
 
@@ -854,7 +860,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function finalizePoll(uint256 pollId) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can finalize poll"
+            "Unauthorized"
         );
         require(
             polls[pollId].status == PollStatus.FOR_CLAIMING,
@@ -874,7 +880,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     function setClaimDeadline(uint256 pollId, uint256 deadline) external pollExists(pollId) {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can set deadline"
+            "Unauthorized"
         );
         require(deadline > block.timestamp, "Deadline must be in future");
         pollClaimDeadline[pollId] = deadline;
@@ -925,12 +931,13 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     {
         require(
             msg.sender == polls[pollId].creator || msg.sender == owner(),
-            "Only creator or owner can donate"
+            "Unauthorized"
         );
-        require(
-            block.timestamp >= polls[pollId].endTime,
-            "Poll must be ended to donate"
-        );
+        // Allow if: ended OR closed OR claim expired
+        bool canDonate = block.timestamp >= polls[pollId].endTime ||
+            polls[pollId].status >= PollStatus.CLOSED ||
+            (pollClaimDeadline[pollId] > 0 && block.timestamp > pollClaimDeadline[pollId]);
+        require(canDonate, "Not ready");
         require(platformTreasury != address(0), "Treasury not set");
 
         for (uint256 i = 0; i < tokens.length; i++) {
