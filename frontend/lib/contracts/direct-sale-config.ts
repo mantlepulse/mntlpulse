@@ -11,7 +11,7 @@
 
 // Hardcoded fallback addresses (update these when deploying to production)
 const MANTLE_MAINNET_DIRECT_SALE = '0x0000000000000000000000000000000000000000' as const // Deploy first
-const MANTLE_SEPOLIA_DIRECT_SALE = '0x0000000000000000000000000000000000000000' as const // Deploy first
+const MANTLE_SEPOLIA_DIRECT_SALE = '0xA6C63C79F9A9B841e4357736cE746564A9b7F70f' as const // DirectTokenSaleUpgradeable proxy
 
 export const DIRECT_SALE_ADDRESSES = {
   // Mantle Mainnet (chainId: 5000)

@@ -19,6 +19,8 @@ import {
   useDistributeRewards,
   useDraftPolls,
   usePublishPoll,
+  useDonateToTreasury,
+  useSetClaimDeadline,
 } from "@/lib/contracts/polls-contract-utils"
 import { PollStatus } from "@/lib/contracts/polls-contract"
 import { toast } from "sonner"
@@ -50,6 +52,8 @@ export default function ManagePollsPage() {
   const { withdrawFunds, isSuccess: isWithdrawSuccess } = useWithdrawFunds()
   const { distributeRewards } = useDistributeRewards()
   const { publishPoll, isSuccess: isPublishSuccess, isConfirming: isPublishConfirming } = usePublishPoll()
+  const { donateToTreasury, isSuccess: isDonateSuccess } = useDonateToTreasury()
+  const { setClaimDeadline, isSuccess: isClaimDeadlineSuccess } = useSetClaimDeadline()
   const { data: draftPollIds, refetch: refetchDraftPolls } = useDraftPolls(address)
   const addPollToProject = useAddPollToProject()
 
@@ -281,6 +285,26 @@ export default function ManagePollsPage() {
     } catch (error) {
       console.error("Withdraw funds failed:", error)
       toast.error("Failed to withdraw funds")
+    }
+  }
+
+  const handleDonateToTreasury = async (pollId: bigint, tokens: string[]) => {
+    try {
+      await donateToTreasury(Number(pollId), tokens as `0x${string}`[])
+      toast.success("Donate to treasury transaction submitted")
+    } catch (error) {
+      console.error("Donate to treasury failed:", error)
+      toast.error("Failed to donate to treasury")
+    }
+  }
+
+  const handleSetClaimDeadline = async (pollId: bigint, deadline: bigint) => {
+    try {
+      await setClaimDeadline(Number(pollId), deadline)
+      toast.success("Claim deadline set successfully")
+    } catch (error) {
+      console.error("Set claim deadline failed:", error)
+      toast.error("Failed to set claim deadline")
     }
   }
 
@@ -638,6 +662,8 @@ export default function ManagePollsPage() {
                       poll={poll}
                       chainId={chainId}
                       onWithdrawFunds={handleWithdrawFunds}
+                      onDonateToTreasury={handleDonateToTreasury}
+                      onSetClaimDeadline={handleSetClaimDeadline}
                     />
                   ))}
                 </div>

@@ -1,7 +1,7 @@
 {
   "PollsContract": {
     "proxy": "0xe517e9c476D7F259228C94Dc24B0731E097E9541",
-    "implementation": "0x434d0fDd72AA670a229294E93D0933Ea685802fd",
+    "implementation": "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f",
     "deployedAt": "2026-01-11T07:30:47.254Z",
     "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
     "deploymentTx": "0x2a9380842ff498e3ce30d177221eb14e103e6782af84e30d6fd831df51f6f3a4",
@@ -15,6 +15,34 @@
         "upgradeTx": "N/A",
         "blockNumber": 33294991,
         "previousImplementation": "0xfc0323F3c5eD271564Ca8F3d4C5FfAD32D553893"
+      },
+      {
+        "implementationAddress": "0xC84377d58747423E1a07505512Adf99A90F86051",
+        "upgradedAt": "2026-01-12T16:06:41.901Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33344664,
+        "previousImplementation": "0x434d0fDd72AA670a229294E93D0933Ea685802fd"
+      },
+      {
+        "implementationAddress": "0x1613E91430666FF87d1Dc353c013dFE54dE5EC00",
+        "upgradedAt": "2026-01-12T23:18:14.382Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33357609,
+        "previousImplementation": "0xC84377d58747423E1a07505512Adf99A90F86051"
+      },
+      {
+        "implementationAddress": "0x5A3E8091e9a1C89bb0388B86bF296F2e297f761D",
+        "upgradedAt": "2026-01-13T00:20:51.196Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33359489,
+        "previousImplementation": "0x1613E91430666FF87d1Dc353c013dFE54dE5EC00"
+      },
+      {
+        "implementationAddress": "0xdfb6881ad34F26D57c3146d335848EDba21dFb6f",
+        "upgradedAt": "2026-01-13T00:26:08.475Z",
+        "upgradeTx": "N/A",
+        "blockNumber": 33359644,
+        "previousImplementation": "0x5A3E8091e9a1C89bb0388B86bF296F2e297f761D"
       }
     ]
   },
@@ -69,6 +97,8 @@
     "network": "mantle-sepolia",
     "chainId": 5003,
     "verified": true,
+    "deprecated": true,
+    "deprecatedReason": "Replaced by DirectTokenSaleUpgradeable",
     "config": {
       "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
       "usdcToken": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51",
@@ -77,6 +107,24 @@
       "minPurchase": "100",
       "maxPurchasePerWallet": "50000"
     }
+  },
+  "DirectTokenSaleUpgradeable": {
+    "proxy": "0xA6C63C79F9A9B841e4357736cE746564A9b7F70f",
+    "implementation": "0xC0659A5a75906B5B9bb9f9150F6267A4EaaFA2B9",
+    "deployedAt": "2026-01-13T00:00:00.000Z",
+    "deployer": "0x5F565baE36bd373797afc1682a627Cc05CC28600",
+    "network": "mantle-sepolia",
+    "chainId": 5003,
+    "config": {
+      "pulseToken": "0xa3713739c39419aA1c6daf349dB4342Be59b9142",
+      "usdcToken": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51",
+      "ethUsdPriceFeed": "0x1b684A60309b0916C77834d62d117d306171FDFE",
+      "tokenPriceUSDC": "0.01",
+      "swapSpread": "2.5%",
+      "minPurchase": "100",
+      "maxPurchasePerWallet": "50000"
+    },
+    "upgrades": []
   },
   "MockUSDC": {
     "address": "0x6763442EbDe3705C4AE49Ca926b001997C67cC51",

@@ -164,6 +164,126 @@ export const useCreatePoll = () => {
   }
 }
 
+// Hook to read platform fee percentage
+export const usePlatformFee = () => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.PLATFORM_FEE_PERCENT,
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+}
+
+// Hook to calculate platform fee for a specific amount
+export const useCalculatePlatformFee = (amount: bigint) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.CALCULATE_PLATFORM_FEE,
+    args: [amount],
+    query: {
+      enabled: !!contractAddress && amount > BigInt(0),
+    },
+  })
+}
+
+// Hook to get the default claim grace period
+export const useDefaultClaimGracePeriod = () => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_DEFAULT_CLAIM_GRACE_PERIOD,
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+}
+
+// Hook to set the default claim grace period (admin only)
+export const useSetDefaultClaimGracePeriod = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setDefaultClaimGracePeriod = async (gracePeriodInSeconds: bigint) => {
+    if (!contractAddress) return
+
+    writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.SET_DEFAULT_CLAIM_GRACE_PERIOD,
+      args: [gracePeriodInSeconds],
+    })
+  }
+
+  return {
+    setDefaultClaimGracePeriod,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    hash,
+    receipt,
+  }
+}
+
+// Hook to create a poll with funding in a single transaction
+export const useCreatePollWithFunding = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const createPollWithFunding = async (
+    question: string,
+    options: string[],
+    durationInHours: number,
+    fundingToken: Address,
+    fundingType: FundingType,
+    votingType: VotingType = VotingType.LINEAR,
+    publish: boolean = true,
+    fundingAmount: bigint, // Total amount including platform fee
+    expectedResponses: bigint = BigInt(0), // Expected number of voters
+    rewardPerResponse: bigint = BigInt(0) // Reward per voter (in wei)
+  ) => {
+    if (!contractAddress) return
+
+    const durationInSeconds = BigInt(durationInHours * 3600) // Convert hours to seconds
+    const isETH = fundingToken === '0x0000000000000000000000000000000000000000'
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.CREATE_POLL_WITH_FUNDING_AND_PUBLISH,
+      args: [question, options, durationInSeconds, fundingToken, fundingType, votingType, publish, fundingAmount, expectedResponses, rewardPerResponse],
+      value: isETH ? fundingAmount : BigInt(0),
+    })
+  }
+
+  return {
+    createPollWithFunding,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    receipt,
+  }
+}
+
 // Hook to vote on a poll
 export const useVote = () => {
   const contractAddress = usePollsContractAddress()
@@ -769,4 +889,96 @@ export const calculateQuadraticCostLocal = (currentVotes: number, additionalVote
 // Format quadratic cost for display
 export const formatQuadraticCost = (cost: bigint, decimals: number = 18): string => {
   return formatEther(cost)
+}
+
+// ============ Refund System Hooks ============
+
+// Hook to get poll funding breakdown
+export const usePollFundingBreakdown = (pollId: number) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_POLL_FUNDING_BREAKDOWN,
+    args: [BigInt(pollId)],
+    query: {
+      enabled: !!contractAddress && pollId >= 0,
+    },
+  })
+}
+
+// Hook to check if claim period has expired
+export const useIsClaimPeriodExpired = (pollId: number) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.IS_CLAIM_PERIOD_EXPIRED,
+    args: [BigInt(pollId)],
+    query: {
+      enabled: !!contractAddress && pollId >= 0,
+    },
+  })
+}
+
+// Hook to donate remaining poll funds to treasury
+export const useDonateToTreasury = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const donateToTreasury = async (pollId: number, tokens: Address[]) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.DONATE_TO_TREASURY,
+      args: [BigInt(pollId), tokens],
+    })
+  }
+
+  return {
+    donateToTreasury,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to set claim deadline for a poll
+export const useSetClaimDeadline = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setClaimDeadline = async (pollId: number, deadline: bigint) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.SET_CLAIM_DEADLINE,
+      args: [BigInt(pollId), deadline],
+    })
+  }
+
+  return {
+    setClaimDeadline,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
 }

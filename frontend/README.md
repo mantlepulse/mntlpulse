@@ -1,10 +1,10 @@
 # BasePulse (SideShift Pulse)
 
-A decentralized polling platform built on Base blockchain with integrated cryptocurrency conversion via SideShift.ai. Create polls, engage communities through gamified quests, and distribute rewards transparently on-chain.
+A decentralized polling platform built on Mantle blockchain with integrated cryptocurrency conversion via SideShift.ai. Create polls, engage communities through gamified quests, and distribute rewards transparently on-chain.
 
 ## Features
 
-- **On-chain Polls** - Create and vote on polls stored on Base blockchain
+- **On-chain Polls** - Create and vote on polls stored on Mantle blockchain
 - **Cross-chain Funding** - Fund polls with 100+ cryptocurrencies via SideShift integration
 - **Quadratic Voting** - Fair voting mechanism preventing whale dominance
 - **Creator Quests** - Gamification system with PULSE token rewards

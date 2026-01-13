@@ -33,11 +33,28 @@ export const CONTRACT_FUNCTIONS = {
   GET_USER_VOTES_IN_POLL: 'getUserVotesInPoll',
   PREVIEW_VOTE_COST: 'previewVoteCost',
   CALCULATE_QUADRATIC_COST: 'calculateQuadraticCost',
+  PLATFORM_FEE_PERCENT: 'platformFeePercent',
+  PLATFORM_TREASURY: 'platformTreasury',
+  CALCULATE_PLATFORM_FEE: 'calculatePlatformFee',
+  // Refund system
+  GET_POLL_FUNDING_BREAKDOWN: 'getPollFundingBreakdown',
+  IS_CLAIM_PERIOD_EXPIRED: 'isClaimPeriodExpired',
+  POLL_EXPECTED_RESPONSES: 'pollExpectedResponses',
+  POLL_REWARD_PER_RESPONSE: 'pollRewardPerResponse',
+  POLL_DISTRIBUTED_AMOUNT: 'pollDistributedAmount',
+  POLL_CLAIM_DEADLINE: 'pollClaimDeadline',
+  POLL_VOTER_COUNT: 'pollVoterCount',
+  // Grace period
+  DEFAULT_CLAIM_GRACE_PERIOD: 'defaultClaimGracePeriod',
+  GET_DEFAULT_CLAIM_GRACE_PERIOD: 'getDefaultClaimGracePeriod',
+  MIN_GRACE_PERIOD: 'MIN_GRACE_PERIOD',
+  MAX_GRACE_PERIOD: 'MAX_GRACE_PERIOD',
 
   // Write functions
   CREATE_POLL: 'createPoll',
   CREATE_POLL_WITH_VOTING_TYPE: 'createPollWithVotingType',
   CREATE_POLL_WITH_VOTING_TYPE_AND_PUBLISH: 'createPollWithVotingTypeAndPublish',
+  CREATE_POLL_WITH_FUNDING_AND_PUBLISH: 'createPollWithFundingAndPublish',
   VOTE: 'vote',
   BUY_VOTES: 'buyVotes',
   FUND_POLL_WITH_ETH: 'fundPollWithETH',
@@ -50,6 +67,13 @@ export const CONTRACT_FUNCTIONS = {
   PUBLISH_POLL: 'publishPoll',
   FINALIZE_POLL: 'finalizePoll',
   WHITELIST_TOKEN: 'whitelistToken',
+  SET_PLATFORM_FEE: 'setPlatformFee',
+  SET_PLATFORM_TREASURY: 'setPlatformTreasury',
+  // Refund system
+  DONATE_TO_TREASURY: 'donateToTreasury',
+  SET_CLAIM_DEADLINE: 'setClaimDeadline',
+  // Grace period (admin only)
+  SET_DEFAULT_CLAIM_GRACE_PERIOD: 'setDefaultClaimGracePeriod',
 } as const
 
 // Event names for listening to contract events
@@ -60,6 +84,11 @@ export const CONTRACT_EVENTS = {
   TOKEN_WHITELISTED: 'TokenWhitelisted',
   FUNDS_WITHDRAWN: 'FundsWithdrawn',
   VOTES_BOUGHT: 'VotesBought',
+  // Refund system
+  DONATED_TO_TREASURY: 'DonatedToTreasury',
+  CLAIM_DEADLINE_SET: 'ClaimDeadlineSet',
+  // Grace period
+  DEFAULT_CLAIM_GRACE_PERIOD_SET: 'DefaultClaimGracePeriodSet',
 } as const
 
 // Enums based on the smart contract
@@ -113,6 +142,16 @@ export interface Funding {
   amount: bigint
   funder: Address
   timestamp: bigint
+}
+
+export interface PollFundingBreakdown {
+  totalFunded: bigint
+  expectedDistribution: bigint
+  actualParticipants: bigint
+  distributed: bigint
+  remaining: bigint
+  claimDeadline: bigint
+  claimPeriodExpired: boolean
 }
 
 // Duration constants from contract

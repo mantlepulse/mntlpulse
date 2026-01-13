@@ -87,6 +87,23 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     IERC20 public pulseToken;
     address public quadraticVotingTreasury; // Where QV payments go
 
+    // Platform fee state (for poll funding)
+    uint256 public platformFeePercent; // Fee in basis points (e.g., 500 = 5%)
+    address public platformTreasury; // Where platform fees are sent
+    uint256 public constant MAX_PLATFORM_FEE = 2000; // Max 20% fee
+
+    // Poll funding metadata for refund/breakdown tracking (added in upgrade)
+    mapping(uint256 => uint256) public pollExpectedResponses;
+    mapping(uint256 => uint256) public pollRewardPerResponse;
+    mapping(uint256 => uint256) public pollDistributedAmount;
+    mapping(uint256 => uint256) public pollClaimDeadline;
+    mapping(uint256 => uint256) public pollVoterCount;
+
+    // Platform-level grace period configuration (added in upgrade)
+    uint256 public defaultClaimGracePeriod; // Default grace period in seconds (0 = no automatic deadline)
+    uint256 public constant MIN_GRACE_PERIOD = 1 hours;
+    uint256 public constant MAX_GRACE_PERIOD = 365 days;
+
     event PollCreated(
         uint256 indexed pollId,
         address indexed creator,
@@ -177,6 +194,14 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
     event PremiumContractUpdated(address indexed oldContract, address indexed newContract);
     event PulseTokenUpdated(address indexed oldToken, address indexed newToken);
     event QuadraticVotingTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event PlatformFeeUpdated(uint256 oldFee, uint256 newFee);
+    event PlatformTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event PlatformFeePaid(uint256 indexed pollId, address token, uint256 amount, address treasury);
+
+    // Refund/donation events
+    event DonatedToTreasury(uint256 indexed pollId, address token, uint256 amount);
+    event ClaimDeadlineSet(uint256 indexed pollId, uint256 deadline);
+    event DefaultClaimGracePeriodSet(uint256 gracePeriod);
 
     modifier pollExists(uint256 pollId) {
         require(pollId < nextPollId, "Poll does not exist");
@@ -287,9 +312,9 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         VotingType votingType,
         bool publish
     ) public returns (uint256) {
-        require(bytes(question).length > 0, "Question cannot be empty");
-        require(options.length >= 2, "Poll must have at least 2 options");
-        require(options.length <= 10, "Poll cannot have more than 10 options");
+        require(bytes(question).length > 0, "Empty question");
+        require(options.length >= 2, "Min 2 options");
+        require(options.length <= 10, "Max 10 options");
         require(
             duration >= MIN_POLL_DURATION && duration <= MAX_POLL_DURATION,
             "Invalid poll duration"
@@ -299,7 +324,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             "Funding token must be ETH or whitelisted"
         );
 
-        // Quadratic voting requires premium subscription or staking
+        // Premium required subscription or staking
         if (votingType == VotingType.QUADRATIC) {
             require(
                 address(premiumContract) != address(0),
@@ -307,7 +332,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             );
             require(
                 premiumContract.isPremiumOrStaked(msg.sender),
-                "Quadratic voting requires premium"
+                "Premium required"
             );
         }
 
@@ -343,17 +368,108 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         return pollId;
     }
 
+    /**
+     * @notice Create a new poll with initial funding in a single transaction
+     * @param question The poll question
+     * @param options Array of voting options
+     * @param duration Poll duration in seconds
+     * @param fundingToken Token address for funding (address(0) for ETH)
+     * @param fundingType Type of funding (NONE, SELF, COMMUNITY)
+     * @param votingType Type of voting (LINEAR or QUADRATIC)
+     * @param publish If true, poll starts as ACTIVE; if false, poll starts as DRAFT
+     * @param fundingAmount Total amount to fund (including platform fee)
+     * @param expectedResponses Expected number of voters (for refund calculations)
+     * @param rewardPerResponse Reward per voter (for refund calculations)
+     * @return pollId The ID of the created poll
+     */
+    function createPollWithFundingAndPublish(
+        string memory question,
+        string[] memory options,
+        uint256 duration,
+        address fundingToken,
+        FundingType fundingType,
+        VotingType votingType,
+        bool publish,
+        uint256 fundingAmount,
+        uint256 expectedResponses,
+        uint256 rewardPerResponse
+    ) external payable nonReentrant returns (uint256) {
+        // Create the poll first
+        uint256 pollId = createPollWithVotingTypeAndPublish(
+            question,
+            options,
+            duration,
+            fundingToken,
+            fundingType,
+            votingType,
+            publish
+        );
+
+        // Store expected responses and reward per response for refund calculations
+        pollExpectedResponses[pollId] = expectedResponses;
+        pollRewardPerResponse[pollId] = rewardPerResponse;
+
+        // Handle funding if amount > 0
+        if (fundingAmount > 0) {
+            require(fundingType == FundingType.SELF, "Self-fund only");
+
+            // Calculate platform fee
+            uint256 platformFee = calculatePlatformFee(fundingAmount);
+            uint256 rewardPool = fundingAmount - platformFee;
+
+            if (fundingToken == address(0)) {
+                // ETH funding
+                require(msg.value == fundingAmount, "ETH amount mismatch");
+
+                // Send platform fee to treasury
+                if (platformFee > 0 && platformTreasury != address(0)) {
+                    (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
+                    require(feeSuccess, "Fee transfer failed");
+                    emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
+                }
+
+                // Record reward pool for the poll
+                polls[pollId].totalFunding += rewardPool;
+                polls[pollId].fundings[msg.sender] += rewardPool;
+                pollTokenBalances[pollId][address(0)] += rewardPool;
+            } else {
+                // ERC20 token funding
+                require(whitelistedTokens[fundingToken], "Token not whitelisted");
+                require(msg.value == 0, "No ETH for token polls");
+
+                // Transfer full amount from user
+                IERC20(fundingToken).safeTransferFrom(msg.sender, address(this), fundingAmount);
+
+                // Send platform fee to treasury
+                if (platformFee > 0 && platformTreasury != address(0)) {
+                    IERC20(fundingToken).safeTransfer(platformTreasury, platformFee);
+                    emit PlatformFeePaid(pollId, fundingToken, platformFee, platformTreasury);
+                }
+
+                // Record reward pool for the poll
+                polls[pollId].totalFunding += rewardPool;
+                polls[pollId].fundings[msg.sender] += rewardPool;
+                pollTokenBalances[pollId][fundingToken] += rewardPool;
+            }
+
+            emit PollFunded(pollId, msg.sender, fundingToken, rewardPool);
+        }
+
+        return pollId;
+    }
+
     function vote(uint256 pollId, uint256 optionIndex)
         external
         pollExists(pollId)
         pollActive(pollId)
         validOption(pollId, optionIndex)
     {
-        require(polls[pollId].votingType == VotingType.LINEAR, "Use buyVotes for quadratic polls");
+        require(polls[pollId].votingType == VotingType.LINEAR, "Use buyVotes");
         require(!polls[pollId].hasVoted[msg.sender], "Already voted");
 
         polls[pollId].hasVoted[msg.sender] = true;
         polls[pollId].votes[optionIndex]++;
+        pollVoterCount[pollId]++;
 
         emit Voted(pollId, msg.sender, optionIndex);
     }
@@ -388,8 +504,11 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         poll.votes[optionIndex] += numVotes;
         poll.totalVotesBought += numVotes;
 
-        // Mark user as having voted (for UI purposes)
-        poll.hasVoted[msg.sender] = true;
+        // Mark user as having voted (for UI purposes) and track voter count
+        if (!poll.hasVoted[msg.sender]) {
+            poll.hasVoted[msg.sender] = true;
+            pollVoterCount[pollId]++;
+        }
 
         emit VotesBought(pollId, msg.sender, optionIndex, numVotes, cost, block.timestamp);
     }
@@ -447,6 +566,10 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         return polls[pollId].votesOwned[voter];
     }
 
+    /**
+     * @notice Fund a poll with ETH (platform fee is deducted)
+     * @param pollId The poll ID to fund
+     */
     function fundPollWithETH(uint256 pollId)
         external
         payable
@@ -455,15 +578,33 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         nonReentrant
     {
         require(msg.value > 0, "Must send ETH to fund");
-        require(polls[pollId].fundingToken == address(0), "This poll only accepts a specific token");
+        require(polls[pollId].fundingToken == address(0), "Wrong token");
 
-        polls[pollId].totalFunding += msg.value;
-        polls[pollId].fundings[msg.sender] += msg.value;
-        pollTokenBalances[pollId][address(0)] += msg.value;
+        // Calculate platform fee
+        uint256 platformFee = calculatePlatformFee(msg.value);
+        uint256 rewardPool = msg.value - platformFee;
 
-        emit PollFunded(pollId, msg.sender, address(0), msg.value);
+        // Send platform fee to treasury
+        if (platformFee > 0 && platformTreasury != address(0)) {
+            (bool feeSuccess, ) = platformTreasury.call{value: platformFee}("");
+            require(feeSuccess, "Fee transfer failed");
+            emit PlatformFeePaid(pollId, address(0), platformFee, platformTreasury);
+        }
+
+        // Record reward pool (after fee deduction)
+        polls[pollId].totalFunding += rewardPool;
+        polls[pollId].fundings[msg.sender] += rewardPool;
+        pollTokenBalances[pollId][address(0)] += rewardPool;
+
+        emit PollFunded(pollId, msg.sender, address(0), rewardPool);
     }
 
+    /**
+     * @notice Fund a poll with ERC20 tokens (platform fee is deducted)
+     * @param pollId The poll ID to fund
+     * @param token The token address
+     * @param amount Total amount to fund (including platform fee)
+     */
     function fundPollWithToken(
         uint256 pollId,
         address token,
@@ -475,16 +616,28 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         nonReentrant
     {
         require(whitelistedTokens[token], "Token not whitelisted");
-        require(amount > 0, "Amount must be greater than 0");
-        require(polls[pollId].fundingToken == token, "This poll only accepts a specific token");
+        require(amount > 0, "Amount is 0");
+        require(polls[pollId].fundingToken == token, "Wrong token");
 
+        // Transfer full amount from user
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
-        polls[pollId].totalFunding += amount;
-        polls[pollId].fundings[msg.sender] += amount;
-        pollTokenBalances[pollId][token] += amount;
+        // Calculate platform fee
+        uint256 platformFee = calculatePlatformFee(amount);
+        uint256 rewardPool = amount - platformFee;
 
-        emit PollFunded(pollId, msg.sender, token, amount);
+        // Send platform fee to treasury
+        if (platformFee > 0 && platformTreasury != address(0)) {
+            IERC20(token).safeTransfer(platformTreasury, platformFee);
+            emit PlatformFeePaid(pollId, token, platformFee, platformTreasury);
+        }
+
+        // Record reward pool (after fee deduction)
+        polls[pollId].totalFunding += rewardPool;
+        polls[pollId].fundings[msg.sender] += rewardPool;
+        pollTokenBalances[pollId][token] += rewardPool;
+
+        emit PollFunded(pollId, msg.sender, token, rewardPool);
     }
 
     function withdrawFunds(uint256 pollId, address recipient, address[] calldata tokens)
@@ -554,8 +707,8 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             polls[pollId].distributionMode == DistributionMode.AUTOMATED,
             "Distribution mode must be MANUAL_PUSH or AUTOMATED"
         );
-        require(recipients.length == amounts.length, "Arrays length mismatch");
-        require(recipients.length > 0, "Must have at least one recipient");
+        require(recipients.length == amounts.length, "Array mismatch");
+        require(recipients.length > 0, "No recipients");
 
         _validateDistributionAmounts(pollId, token, amounts);
         _executeDistribution(pollId, token, recipients, amounts);
@@ -567,7 +720,7 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
             totalToDistribute += amounts[i];
         }
 
-        require(totalToDistribute <= pollTokenBalances[pollId][token], "Insufficient token balance");
+        require(totalToDistribute <= pollTokenBalances[pollId][token], "Insufficient balance");
     }
 
     function _executeDistribution(
@@ -576,15 +729,19 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address[] calldata recipients,
         uint256[] calldata amounts
     ) private {
+        uint256 totalDistributed = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
             if (amounts[i] == 0) continue;
 
             require(pollTokenBalances[pollId][token] >= amounts[i], "Insufficient balance for distribution");
             pollTokenBalances[pollId][token] -= amounts[i];
+            totalDistributed += amounts[i];
 
             _transferFunds(recipients[i], token, amounts[i]);
             emit RewardDistributed(pollId, recipients[i], amounts[i], token, block.timestamp);
         }
+        // Track total distributed amount
+        pollDistributedAmount[pollId] += totalDistributed;
     }
 
     function _transferFunds(address recipient, address token, uint256 amount) private {
@@ -603,6 +760,13 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         );
         require(polls[pollId].status != PollStatus.CLOSED, "Poll is already closed");
         _setStatus(pollId, PollStatus.CLOSED);
+
+        // Auto-set claim deadline if default grace period is configured and no deadline set yet
+        if (defaultClaimGracePeriod > 0 && pollClaimDeadline[pollId] == 0) {
+            uint256 deadline = block.timestamp + defaultClaimGracePeriod;
+            pollClaimDeadline[pollId] = deadline;
+            emit ClaimDeadlineSet(pollId, deadline);
+        }
     }
 
     /**
@@ -698,6 +862,126 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         );
         _setStatus(pollId, PollStatus.FINALIZED);
         emit PollFinalized(pollId, block.timestamp);
+    }
+
+    // ============ Refund & Donation Functions ============
+
+    /**
+     * @notice Set a claim deadline for a poll
+     * @param pollId The poll ID
+     * @param deadline Timestamp after which unclaimed funds can be withdrawn/donated
+     */
+    function setClaimDeadline(uint256 pollId, uint256 deadline) external pollExists(pollId) {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can set deadline"
+        );
+        require(deadline > block.timestamp, "Deadline must be in future");
+        pollClaimDeadline[pollId] = deadline;
+        emit ClaimDeadlineSet(pollId, deadline);
+    }
+
+    /**
+     * @notice Set the default claim grace period for all new polls (owner only)
+     * @param gracePeriod Grace period in seconds (0 to disable automatic deadlines)
+     */
+    function setDefaultClaimGracePeriod(uint256 gracePeriod) external onlyOwner {
+        require(
+            gracePeriod == 0 || (gracePeriod >= MIN_GRACE_PERIOD && gracePeriod <= MAX_GRACE_PERIOD),
+            "Invalid grace period"
+        );
+        defaultClaimGracePeriod = gracePeriod;
+        emit DefaultClaimGracePeriodSet(gracePeriod);
+    }
+
+    /**
+     * @notice Get the default claim grace period
+     * @return The default grace period in seconds
+     */
+    function getDefaultClaimGracePeriod() external view returns (uint256) {
+        return defaultClaimGracePeriod;
+    }
+
+    /**
+     * @notice Check if the claim period has expired for a poll
+     * @param pollId The poll ID
+     * @return True if claim period has expired, false otherwise
+     */
+    function isClaimPeriodExpired(uint256 pollId) public view pollExists(pollId) returns (bool) {
+        uint256 deadline = pollClaimDeadline[pollId];
+        if (deadline == 0) return false; // No deadline set
+        return block.timestamp > deadline;
+    }
+
+    /**
+     * @notice Donate remaining poll funds to the platform treasury
+     * @param pollId The poll ID
+     * @param tokens Array of token addresses to donate (use address(0) for ETH)
+     */
+    function donateToTreasury(uint256 pollId, address[] calldata tokens)
+        external
+        pollExists(pollId)
+        nonReentrant
+    {
+        require(
+            msg.sender == polls[pollId].creator || msg.sender == owner(),
+            "Only creator or owner can donate"
+        );
+        require(
+            block.timestamp >= polls[pollId].endTime,
+            "Poll must be ended to donate"
+        );
+        require(platformTreasury != address(0), "Treasury not set");
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 balance = pollTokenBalances[pollId][tokens[i]];
+            if (balance > 0) {
+                pollTokenBalances[pollId][tokens[i]] = 0;
+
+                if (tokens[i] == address(0)) {
+                    (bool success, ) = platformTreasury.call{value: balance}("");
+                    require(success, "ETH transfer failed");
+                } else {
+                    IERC20(tokens[i]).safeTransfer(platformTreasury, balance);
+                }
+
+                emit DonatedToTreasury(pollId, tokens[i], balance);
+            }
+        }
+    }
+
+    /**
+     * @notice Get detailed funding breakdown for a poll
+     * @param pollId The poll ID
+     * @return totalFunded Total amount funded to the poll
+     * @return expectedDistribution Expected distribution based on expectedResponses × rewardPerResponse
+     * @return actualParticipants Number of actual voters
+     * @return distributed Total amount already distributed
+     * @return remaining Remaining balance available for withdrawal/donation
+     * @return claimDeadline Claim deadline timestamp (0 if not set)
+     * @return claimPeriodExpired Whether the claim period has expired
+     */
+    function getPollFundingBreakdown(uint256 pollId)
+        external
+        view
+        pollExists(pollId)
+        returns (
+            uint256 totalFunded,
+            uint256 expectedDistribution,
+            uint256 actualParticipants,
+            uint256 distributed,
+            uint256 remaining,
+            uint256 claimDeadline,
+            bool claimPeriodExpired
+        )
+    {
+        totalFunded = polls[pollId].totalFunding;
+        expectedDistribution = pollExpectedResponses[pollId] * pollRewardPerResponse[pollId];
+        actualParticipants = pollVoterCount[pollId];
+        distributed = pollDistributedAmount[pollId];
+        remaining = pollTokenBalances[pollId][polls[pollId].fundingToken];
+        claimDeadline = pollClaimDeadline[pollId];
+        claimPeriodExpired = isClaimPeriodExpired(pollId);
     }
 
     /**
@@ -905,6 +1189,38 @@ contract PollsContract is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         address oldTreasury = quadraticVotingTreasury;
         quadraticVotingTreasury = _treasury;
         emit QuadraticVotingTreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    /**
+     * @notice Set the platform fee percentage for poll funding
+     * @param _feePercent Fee in basis points (e.g., 500 = 5%)
+     */
+    function setPlatformFee(uint256 _feePercent) external onlyOwner {
+        require(_feePercent <= MAX_PLATFORM_FEE, "Fee exceeds maximum");
+        uint256 oldFee = platformFeePercent;
+        platformFeePercent = _feePercent;
+        emit PlatformFeeUpdated(oldFee, _feePercent);
+    }
+
+    /**
+     * @notice Set the treasury address for platform fees
+     * @param _treasury Address to receive platform fees
+     */
+    function setPlatformTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid treasury address");
+        address oldTreasury = platformTreasury;
+        platformTreasury = _treasury;
+        emit PlatformTreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    /**
+     * @notice Calculate platform fee for a given amount
+     * @param amount The funding amount
+     * @return fee The platform fee amount
+     */
+    function calculatePlatformFee(uint256 amount) public view returns (uint256) {
+        if (platformFeePercent == 0) return 0;
+        return (amount * platformFeePercent) / 10000;
     }
 
     /**
