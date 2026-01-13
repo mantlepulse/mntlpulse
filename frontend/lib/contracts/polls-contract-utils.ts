@@ -921,6 +921,9 @@ export const usePollFundingBreakdown = (pollId: number) => {
     args: [BigInt(pollId)],
     query: {
       enabled: !!contractAddress && pollId >= 0,
+      // Always refetch to show latest balance after withdraw/donate
+      staleTime: 0,
+      refetchOnMount: 'always',
     },
   })
 }

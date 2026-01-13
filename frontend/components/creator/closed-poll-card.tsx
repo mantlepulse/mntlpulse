@@ -58,7 +58,7 @@ export function ClosedPollCard({
   const [showBreakdown, setShowBreakdown] = useState(false)
 
   // Fetch funding breakdown from contract
-  const { data: fundingBreakdown, isLoading: isBreakdownLoading } = usePollFundingBreakdown(poll.pollId)
+  const { data: fundingBreakdown, isLoading: isBreakdownLoading, refetch: refetchBreakdown } = usePollFundingBreakdown(poll.pollId)
 
   const endDate = new Date(poll.endTime * 1000)
   const now = new Date()
@@ -81,8 +81,11 @@ export function ClosedPollCard({
     claimPeriodExpired: fundingBreakdown[6],
   } : null
 
-  // Can withdraw if: has funds AND (poll has ended OR grace period has expired)
-  const canWithdraw = hasFunds && (hasEnded || breakdown?.claimPeriodExpired)
+  // Check if there are remaining funds to withdraw (from live contract data)
+  const hasRemainingFunds = breakdown ? breakdown.remaining > 0 : hasFunds
+
+  // Can withdraw if: has remaining funds AND (poll has ended OR grace period has expired)
+  const canWithdraw = hasRemainingFunds && (hasEnded || breakdown?.claimPeriodExpired)
 
   // Calculate distribution progress percentage
   const distributionProgress = breakdown && breakdown.expectedDistribution > 0
@@ -110,6 +113,8 @@ export function ClosedPollCard({
     try {
       await onDonateToTreasury(BigInt(poll.pollId), [tokenToUse])
       setIsDonateDialogOpen(false)
+      // Refetch breakdown after a delay to allow transaction to confirm
+      setTimeout(() => refetchBreakdown(), 3000)
     } catch (error) {
       console.error("Donate to treasury failed:", error)
     } finally {
@@ -140,6 +145,8 @@ export function ClosedPollCard({
       await onWithdrawFunds(BigInt(poll.pollId), recipient, [tokenToUse])
       setIsWithdrawDialogOpen(false)
       setRecipient("")
+      // Refetch breakdown after a delay to allow transaction to confirm
+      setTimeout(() => refetchBreakdown(), 3000)
     } catch (error) {
       console.error("Withdraw failed:", error)
     } finally {
@@ -294,20 +301,18 @@ export function ClosedPollCard({
                 View
               </Link>
             </Button>
-            {hasFunds && (
+            {canWithdraw && breakdown && breakdown.remaining > 0 && (
               <>
                 <Button
-                  variant={canWithdraw ? "default" : "secondary"}
+                  variant="default"
                   size="sm"
                   className="h-8"
                   onClick={() => setIsWithdrawDialogOpen(true)}
-                  disabled={!canWithdraw}
-                  title={!hasEnded ? `Withdrawal available after ${endDate.toLocaleString()}` : undefined}
                 >
                   <Wallet className="h-3.5 w-3.5 mr-2" />
                   Withdraw
                 </Button>
-                {onDonateToTreasury && canWithdraw && breakdown && breakdown.remaining > 0 && (
+                {onDonateToTreasury && (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -318,28 +323,33 @@ export function ClosedPollCard({
                     Donate
                   </Button>
                 )}
-                {onSetClaimDeadline && canWithdraw && !breakdown?.claimDeadline && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => setIsGracePeriodDialogOpen(true)}
-                  >
-                    <Timer className="h-3.5 w-3.5 mr-2" />
-                    Set Grace Period
-                  </Button>
-                )}
               </>
             )}
+            {hasFunds && onSetClaimDeadline && !breakdown?.claimDeadline && (hasEnded || breakdown?.claimPeriodExpired) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setIsGracePeriodDialogOpen(true)}
+              >
+                <Timer className="h-3.5 w-3.5 mr-2" />
+                Set Grace Period
+              </Button>
+            )}
           </div>
-          {hasFunds && !hasEnded && !breakdown?.claimPeriodExpired && (
+          {breakdown && breakdown.remaining > 0 && !hasEnded && !breakdown?.claimPeriodExpired && (
             <p className="text-xs text-muted-foreground text-center">
               Funds unlock on {endDate.toLocaleDateString()} at {endDate.toLocaleTimeString()}
             </p>
           )}
-          {breakdown?.claimPeriodExpired && !hasEnded && (
+          {breakdown?.claimPeriodExpired && breakdown.remaining > 0 && (
             <p className="text-xs text-green-600 text-center">
               Grace period expired - funds available for withdrawal
+            </p>
+          )}
+          {breakdown && breakdown.remaining === 0 && hasFunds && (
+            <p className="text-xs text-muted-foreground text-center">
+              All funds have been withdrawn or donated
             </p>
           )}
         </CardContent>
@@ -359,7 +369,7 @@ export function ClosedPollCard({
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-sm text-muted-foreground">Available Balance</div>
               <div className="text-lg font-semibold">
-                {fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
+                {breakdown?.remaining.toFixed(4) || fundingAmount.toFixed(4)} {poll.fundingTokenSymbol || "ETH"}
               </div>
             </div>
 
