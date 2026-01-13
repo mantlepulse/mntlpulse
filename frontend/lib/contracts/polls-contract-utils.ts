@@ -1002,3 +1002,125 @@ export const useSetClaimDeadline = () => {
     error,
   }
 }
+
+// ============ Participant Claim Hooks ============
+
+// Hook to check if user has claimed their reward
+export const useHasClaimedReward = (pollId: number, userAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.HAS_CLAIMED_REWARD,
+    args: pollId !== undefined && userAddress ? [BigInt(pollId), userAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && pollId !== undefined && !!userAddress,
+    },
+  })
+}
+
+// Hook to get claimable reward amount for a user
+export const useClaimableReward = (pollId: number, userAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_CLAIMABLE_REWARD,
+    args: pollId !== undefined && userAddress ? [BigInt(pollId), userAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && pollId !== undefined && !!userAddress,
+    },
+  })
+}
+
+// Hook to claim reward to own wallet
+export const useClaimReward = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const claimReward = async (pollId: number) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.CLAIM_REWARD,
+      args: [BigInt(pollId)],
+    })
+  }
+
+  return {
+    claimReward,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to claim reward to a specific address (for SideShift integration)
+export const useClaimRewardTo = () => {
+  const contractAddress = usePollsContractAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const claimRewardTo = async (pollId: number, recipient: Address) => {
+    if (!contractAddress) return
+
+    return writeContract({
+      address: contractAddress,
+      abi: POLLS_CONTRACT_ABI,
+      functionName: CONTRACT_FUNCTIONS.CLAIM_REWARD_TO,
+      args: [BigInt(pollId), recipient],
+    })
+  }
+
+  return {
+    claimRewardTo,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+// Hook to get owed rewards (amount locked for voters)
+export const useOwedRewards = (pollId: number) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_OWED_REWARDS,
+    args: [BigInt(pollId)],
+    query: {
+      enabled: !!contractAddress && pollId >= 0,
+    },
+  })
+}
+
+// Hook to get withdrawable amount (considering voter rewards protection)
+export const useWithdrawableAmount = (pollId: number, tokenAddress?: Address) => {
+  const contractAddress = usePollsContractAddress()
+
+  return useReadContract({
+    address: contractAddress,
+    abi: POLLS_CONTRACT_ABI,
+    functionName: CONTRACT_FUNCTIONS.GET_WITHDRAWABLE_AMOUNT,
+    args: pollId !== undefined && tokenAddress ? [BigInt(pollId), tokenAddress] : undefined,
+    query: {
+      enabled: !!contractAddress && pollId !== undefined && !!tokenAddress,
+    },
+  })
+}

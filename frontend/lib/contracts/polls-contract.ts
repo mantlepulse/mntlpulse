@@ -50,6 +50,11 @@ export const CONTRACT_FUNCTIONS = {
   GET_DEFAULT_CLAIM_GRACE_PERIOD: 'getDefaultClaimGracePeriod',
   MIN_GRACE_PERIOD: 'MIN_GRACE_PERIOD',
   MAX_GRACE_PERIOD: 'MAX_GRACE_PERIOD',
+  // Participant claim functions
+  HAS_CLAIMED_REWARD: 'hasClaimedReward',
+  GET_CLAIMABLE_REWARD: 'getClaimableReward',
+  GET_OWED_REWARDS: 'getOwedRewards',
+  GET_WITHDRAWABLE_AMOUNT: 'getWithdrawableAmount',
 
   // Write functions
   CREATE_POLL: 'createPoll',
@@ -75,6 +80,9 @@ export const CONTRACT_FUNCTIONS = {
   SET_CLAIM_DEADLINE: 'setClaimDeadline',
   // Grace period (admin only)
   SET_DEFAULT_CLAIM_GRACE_PERIOD: 'setDefaultClaimGracePeriod',
+  // Participant claim functions
+  CLAIM_REWARD: 'claimReward',
+  CLAIM_REWARD_TO: 'claimRewardTo',
 } as const
 
 // Event names for listening to contract events
