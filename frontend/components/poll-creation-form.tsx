@@ -42,10 +42,12 @@ const pollSchema = z.object({
   rewardAmount: z.coerce.number().min(0).optional(),
   votingType: z.enum(["linear", "quadratic"]),
   publish: z.boolean(),
-  // New funding fields
+  // Funding fields
   expectedResponses: z.coerce.number().min(1).optional(),
   rewardPerResponse: z.coerce.number().min(0).optional(),
   fundNow: z.boolean().default(true),
+  // Funding mode: "reward" = specify reward amount, "budget" = specify total budget
+  fundingMode: z.enum(["reward", "budget"]).default("reward"),
 })
 
 // Platform fee percentage (will be fetched from contract, default to 5%)
@@ -123,11 +125,32 @@ export function PollCreationForm() {
   const expectedResponses = watch("expectedResponses") || 0
   const rewardPerResponse = watch("rewardPerResponse") || 0
   const fundNow = watch("fundNow")
+  const fundingMode = watch("fundingMode") || "reward"
 
-  // Calculate funding amounts
-  const rewardPool = expectedResponses * rewardPerResponse
-  const platformFee = (rewardPool * platformFeePercent) / 10000
-  const totalFunding = rewardPool + platformFee
+  // Calculate funding amounts based on mode
+  // Fee rate conversion: 500 basis points = 5% = 0.05
+  const feePercent = platformFeePercent / 100 // For display: 500 -> 5
+  const feeRate = platformFeePercent / 10000  // For calculation: 500 -> 0.05
+  const userInputAmount = expectedResponses * rewardPerResponse
+
+  let rewardPool: number
+  let totalFunding: number
+  let platformFee: number
+
+  if (fundingMode === "reward") {
+    // Reward Mode: User specifies how much voters get, we calculate total
+    // Contract deducts fee from total: rewardPool = total - (total * feeRate)
+    // So: total = rewardPool / (1 - feeRate)
+    rewardPool = userInputAmount
+    totalFunding = feeRate < 1 ? rewardPool / (1 - feeRate) : rewardPool
+    platformFee = totalFunding - rewardPool
+  } else {
+    // Budget Mode: User specifies max budget (total), we calculate reward
+    // rewardPool = total - (total * feeRate) = total * (1 - feeRate)
+    totalFunding = userInputAmount
+    platformFee = totalFunding * feeRate
+    rewardPool = totalFunding - platformFee
+  }
   const category = watch("category")
   const votingType = watch("votingType")
   const title = watch("title")
@@ -794,7 +817,43 @@ export function PollCreationForm() {
                 </Select>
               </div>
 
-              {/* Expected Responses & Reward Per Response */}
+              {/* Funding Mode Toggle */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">How do you want to specify funding?</Label>
+                <div className="flex rounded-lg border p-1 w-fit">
+                  <button
+                    type="button"
+                    className={cn(
+                      "px-3 py-1.5 text-sm rounded-md transition-colors",
+                      fundingMode === "reward"
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    )}
+                    onClick={() => setValue("fundingMode", "reward")}
+                  >
+                    By Reward Amount
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "px-3 py-1.5 text-sm rounded-md transition-colors",
+                      fundingMode === "budget"
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    )}
+                    onClick={() => setValue("fundingMode", "budget")}
+                  >
+                    By Total Budget
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {fundingMode === "reward"
+                    ? "Specify how much voters will receive. Platform fee is added on top."
+                    : "Specify your total budget. Platform fee is deducted from this amount."}
+                </p>
+              </div>
+
+              {/* Expected Responses & Amount Per Response */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expectedResponses">Expected Responses</Label>
@@ -809,7 +868,11 @@ export function PollCreationForm() {
                   <p className="text-xs text-muted-foreground">How many voters do you expect?</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rewardPerResponse">Reward per Response ({fundingToken || "PULSE"})</Label>
+                  <Label htmlFor="rewardPerResponse">
+                    {fundingMode === "reward"
+                      ? `Reward per Response (${fundingToken || "PULSE"})`
+                      : `Budget per Response (${fundingToken || "PULSE"})`}
+                  </Label>
                   <Input
                     id="rewardPerResponse"
                     type="number"
@@ -819,12 +882,16 @@ export function PollCreationForm() {
                     value={rewardPerResponse || ""}
                     onChange={(e) => setValue("rewardPerResponse", parseFloat(e.target.value) || 0, { shouldValidate: true })}
                   />
-                  <p className="text-xs text-muted-foreground">Reward amount per voter</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fundingMode === "reward"
+                      ? "How much each voter will receive"
+                      : "Your cost per voter (includes platform fee)"}
+                  </p>
                 </div>
               </div>
 
               {/* Funding Breakdown */}
-              {rewardPool > 0 && (
+              {userInputAmount > 0 && (
                 <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
                   <h4 className="font-medium flex items-center gap-2">
                     <Coins className="h-4 w-4" />
@@ -833,21 +900,49 @@ export function PollCreationForm() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Reward Pool ({expectedResponses} × {rewardPerResponse} {fundingToken})
+                        Reward Pool (for voters)
                       </span>
                       <span className="font-medium">{rewardPool.toFixed(4)} {fundingToken}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Platform Fee ({(platformFeePercent / 100).toFixed(1)}%)
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        Platform Fee ({feePercent.toFixed(1)}%)
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="text-muted-foreground hover:text-foreground">
+                              <Info className="h-3.5 w-3.5 cursor-help" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 text-sm">
+                            <p className="font-medium mb-2">How is this calculated?</p>
+                            {fundingMode === "reward" ? (
+                              <p className="text-muted-foreground">
+                                To ensure voters receive exactly {rewardPool.toFixed(2)} {fundingToken},
+                                we calculate: {rewardPool.toFixed(2)} ÷ (1 - {feePercent}%) = {totalFunding.toFixed(2)} {fundingToken}.
+                                The {feePercent}% fee ({platformFee.toFixed(2)} {fundingToken}) is then deducted from this total.
+                              </p>
+                            ) : (
+                              <p className="text-muted-foreground">
+                                From your {totalFunding.toFixed(2)} {fundingToken} budget,
+                                {feePercent}% ({platformFee.toFixed(2)} {fundingToken}) goes to the platform,
+                                leaving {rewardPool.toFixed(2)} {fundingToken} for voters.
+                              </p>
+                            )}
+                          </PopoverContent>
+                        </Popover>
                       </span>
                       <span className="font-medium">{platformFee.toFixed(4)} {fundingToken}</span>
                     </div>
                     <div className="border-t pt-2 flex justify-between">
-                      <span className="font-semibold">Total to Fund</span>
+                      <span className="font-semibold">Total You&apos;ll Pay</span>
                       <span className="font-semibold text-primary">{totalFunding.toFixed(4)} {fundingToken}</span>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {fundingMode === "reward"
+                      ? `Voters will share exactly ${rewardPool.toFixed(2)} ${fundingToken} in rewards.`
+                      : `From your ${totalFunding.toFixed(2)} ${fundingToken} budget, ${rewardPool.toFixed(2)} ${fundingToken} goes to voters.`}
+                  </p>
                 </div>
               )}
 
