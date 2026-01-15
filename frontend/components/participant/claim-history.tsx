@@ -30,7 +30,8 @@ interface ClaimHistoryItem {
   pollId: bigint
   pollQuestion: string
   amount: string
-  convertedTo: string
+  tokenSymbol?: string
+  convertedTo?: string
   status: "completed" | "processing" | "failed"
   timestamp: Date
   txHash?: string
@@ -45,12 +46,12 @@ export function ClaimHistory({ claims, isLoading = false }: ClaimHistoryProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleExportCSV = () => {
-    const headers = ["Date", "Poll", "Amount", "Converted To", "Status", "Transaction"]
+    const headers = ["Date", "Poll", "Amount", "Token", "Status", "Transaction"]
     const rows = claims.map((claim) => [
       claim.timestamp.toLocaleDateString(),
       claim.pollQuestion,
       claim.amount,
-      claim.convertedTo,
+      claim.tokenSymbol || 'PULSE',
       claim.status,
       claim.txHash || "N/A",
     ])
@@ -114,7 +115,7 @@ export function ClaimHistory({ claims, isLoading = false }: ClaimHistoryProps) {
                 <TableHead>Date</TableHead>
                 <TableHead>Poll</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Converted To</TableHead>
+                <TableHead>Token</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Transaction</TableHead>
               </TableRow>
@@ -133,8 +134,8 @@ export function ClaimHistory({ claims, isLoading = false }: ClaimHistoryProps) {
                       {claim.pollQuestion}
                     </Link>
                   </TableCell>
-                  <TableCell>{claim.amount} PULSE</TableCell>
-                  <TableCell>{claim.convertedTo}</TableCell>
+                  <TableCell>{claim.amount} {claim.tokenSymbol || 'PULSE'}</TableCell>
+                  <TableCell>{claim.convertedTo || '-'}</TableCell>
                   <TableCell>
                     <Badge
                       variant={

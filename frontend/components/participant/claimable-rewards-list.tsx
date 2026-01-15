@@ -25,6 +25,10 @@ interface ClaimableReward {
   totalFunding: bigint
   claimableAmount: string
   totalParticipants: number
+  tokenSymbol?: string
+  tokenDecimals?: number
+  hasClaimed?: boolean
+  status?: string
 }
 
 interface ClaimableRewardsListProps {

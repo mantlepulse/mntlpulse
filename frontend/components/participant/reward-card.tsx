@@ -21,14 +21,17 @@ interface RewardCardProps {
     isActive: boolean
     endTime: bigint
     totalFunding: bigint
-    claimableAmount: string // In ETH/PULSE
+    claimableAmount: string // In token units
     totalParticipants: number
+    tokenSymbol?: string
+    tokenDecimals?: number
   }
 }
 
 export function RewardCard({ poll }: RewardCardProps) {
   const [showClaimDialog, setShowClaimDialog] = useState(false)
   const endDate = new Date(Number(poll.endTime) * 1000)
+  const tokenSymbol = poll.tokenSymbol || 'PULSE'
   const now = new Date()
   const isExpired = endDate < now
   const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -88,7 +91,7 @@ export function RewardCard({ poll }: RewardCardProps) {
           <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
             <div className="text-sm text-muted-foreground mb-1">Your Reward</div>
             <div className="text-3xl font-bold text-primary">
-              {poll.claimableAmount} PULSE
+              {poll.claimableAmount} {tokenSymbol}
             </div>
           </div>
 
@@ -102,7 +105,7 @@ export function RewardCard({ poll }: RewardCardProps) {
               <div className="text-2xl font-bold">
                 {Number(formatEther(poll.totalFunding)).toFixed(2)}
               </div>
-              <div className="text-sm text-muted-foreground">Total Pool (PULSE)</div>
+              <div className="text-sm text-muted-foreground">Total Pool ({tokenSymbol})</div>
             </div>
           </div>
 
