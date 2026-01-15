@@ -1,6 +1,6 @@
 /**
- * Analytics API client for BasePulse
- * Fetches analytics data from basepulse-api
+ * Analytics API client for Mantle Pulse
+ * Fetches analytics data from the backend API
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';

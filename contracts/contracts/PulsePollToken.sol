@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title PulsePollToken
- * @dev Custom ERC20 token for BasePulse poll funding
+ * @dev Custom ERC20 token for Mantle Pulse poll funding
  *
  * Token Details:
  * - Name: PulsePoll Token
@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * - Max Supply: 1,000,000,000 PULSE (1 billion)
  * - Initial Supply: 1,000,000,000 PULSE (minted to deployer for testing)
  *
- * This token can be used to fund polls on the BasePulse platform.
+ * This token can be used to fund polls on the Mantle Pulse platform.
  * Utility token inspired by TruePulse tokenomics.
  */
 contract PulsePollToken is ERC20, Ownable {

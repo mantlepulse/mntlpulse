@@ -125,7 +125,7 @@ export default function FeedbackPage() {
                 <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
                 <h2 className="text-2xl font-bold">Thank You!</h2>
                 <p className="text-muted-foreground">
-                  Your feedback has been submitted successfully. We appreciate you taking the time to help us improve BasePulse.
+                  Your feedback has been submitted successfully. We appreciate you taking the time to help us improve Mantle Pulse.
                 </p>
                 <div className="flex gap-4 justify-center pt-4">
                   <Button onClick={handleReset} variant="outline">
@@ -150,7 +150,7 @@ export default function FeedbackPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Share Your Feedback</h1>
           <p className="text-muted-foreground mt-2">
-            Help us improve BasePulse by sharing your thoughts, suggestions, or reporting issues.
+            Help us improve Mantle Pulse by sharing your thoughts, suggestions, or reporting issues.
             Your feedback may be selected for community voting in future polls.
           </p>
         </div>
@@ -273,7 +273,7 @@ export default function FeedbackPage() {
           <CardContent className="pt-6">
             <h3 className="font-semibold mb-2">How Your Feedback Is Used</h3>
             <ul className="text-sm text-muted-foreground space-y-2">
-              <li>• Your feedback is reviewed by the BasePulse team</li>
+              <li>• Your feedback is reviewed by the Mantle Pulse team</li>
               <li>• Top feedback may be selected for community voting polls</li>
               <li>• If you share your wallet, you may receive rewards for valuable feedback</li>
               <li>• Feedback snapshots are periodically recorded on-chain for transparency</li>

@@ -14,7 +14,7 @@ interface IStakingContract {
 
 /**
  * @title PremiumSubscription
- * @notice Manages premium subscriptions for BasePulse creators
+ * @notice Manages premium subscriptions for Mantle Pulse creators
  * @dev Users can subscribe with PULSE tokens to unlock premium features like Quadratic Voting
  */
 contract PremiumSubscription is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {

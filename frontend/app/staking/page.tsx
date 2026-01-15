@@ -41,7 +41,7 @@ const stakingBenefits = [
   {
     icon: TrendingUp,
     title: "Support the Protocol",
-    description: "Your stake helps secure and grow the BasePulse ecosystem"
+    description: "Your stake helps secure and grow the Mantle Pulse ecosystem"
   },
   {
     icon: Clock,

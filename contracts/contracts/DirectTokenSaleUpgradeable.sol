@@ -26,7 +26,7 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
  *
  * Purpose:
  * This contract allows users to buy and sell PULSE tokens directly in the
- * BasePulse app at a premium price with a small spread.
+ * Mantle Pulse app at a premium price with a small spread.
  */
 contract DirectTokenSaleUpgradeable is
     Initializable,
