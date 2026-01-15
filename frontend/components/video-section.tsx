@@ -17,7 +17,7 @@ export function VideoSection() {
             {/* Section Header */}
             <div className="text-center space-y-4 max-w-3xl">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                See BasePulse in Action
+                See Mantle Pulse in Action
               </h2>
               <p className="text-muted-foreground text-lg md:text-xl">
                 Watch how easy it is to create polls, engage your community, and drive decisions on-chain
@@ -30,7 +30,7 @@ export function VideoSection() {
                 <iframe
                   className="absolute inset-0 w-full h-full"
                   src="https://www.youtube.com/embed/j9Cnqcrsdq0"
-                  title="BasePulse Demo Video"
+                  title="Mantle Pulse Demo Video"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />

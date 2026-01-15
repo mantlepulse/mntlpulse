@@ -184,7 +184,7 @@ export default function PremiumPage() {
                     <div>
                       <p className="font-medium">Support the Protocol</p>
                       <p className="text-sm text-muted-foreground">
-                        Help secure and grow the BasePulse ecosystem
+                        Help secure and grow the Mantle Pulse ecosystem
                       </p>
                     </div>
                   </div>
