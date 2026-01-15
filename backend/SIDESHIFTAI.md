@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document details the SideShift AI integration within the BasePulse backend API. The backend acts as a middleware layer between the frontend application and SideShift AI's cryptocurrency conversion service.
+This document details the SideShift AI integration within the Mantle Pulse backend API. The backend acts as a middleware layer between the frontend application and SideShift AI's cryptocurrency conversion service.
 
 **Key Responsibilities:**
 - Proxy requests to SideShift AI API
@@ -40,7 +40,7 @@ This document details the SideShift AI integration within the BasePulse backend 
 ### File Structure
 
 ```
-basepulse-api/
+mntlpulse-api/
 ├── src/
 │   ├── services/
 │   │   ├── sideshift.service.ts      # SideShift AI API client
@@ -946,7 +946,7 @@ PORT=3001
 NODE_ENV=development
 
 # Database (Wave 2)
-DATABASE_URL=postgresql://user:password@localhost:5432/basepulse
+DATABASE_URL=postgresql://user:password@localhost:5432/mntlpulse
 
 # SideShift AI
 SIDESHIFT_AFFILIATE_ID=your_affiliate_id_here    # Optional
@@ -1286,7 +1286,7 @@ Once deployed, configure in SideShift dashboard:
 ### Internal Resources
 - **Setup Guide:** `SETUP.md`
 - **Frontend Integration:** `INTEGRATION.md`
-- **Frontend Docs:** `../basepulse-app/SIDESHIFTAI.md`
+- **Frontend Docs:** `../mntlpulse-app/SIDESHIFTAI.md`
 
 ### External Resources
 - **SideShift API Docs:** https://sideshift.ai/api

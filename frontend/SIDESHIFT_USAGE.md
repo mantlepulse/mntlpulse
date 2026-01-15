@@ -346,14 +346,14 @@ interface ShiftMonitorProps {
 
 ### 1. Start Backend API
 ```bash
-cd basepulse-api
+cd mntlpulse-api
 npm run dev
 # Server runs on http://localhost:3001
 ```
 
 ### 2. Start Frontend
 ```bash
-cd basepulse-app
+cd mntlpulse-app
 npm run dev
 # App runs on http://localhost:3000
 ```
