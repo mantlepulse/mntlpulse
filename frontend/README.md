@@ -42,7 +42,7 @@ A decentralized polling platform built on Mantle blockchain with integrated cryp
         ▼                                     ▼
 ┌────────────────┐    ┌─────────────────────────────────────┐
 │   PostgreSQL   │    │         Blockchain Layer             │
-│   (Drizzle)    │    │  mntlpulse-contract (Base Network)   │
+│   (Drizzle)    │    │  mntlpulse-contract (Mantle Network) │
 └────────────────┘    └─────────────────────────────────────┘
                                     │
                                     ▼
@@ -78,14 +78,14 @@ A decentralized polling platform built on Mantle blockchain with integrated cryp
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL 14+
-- Wallet with Base Sepolia ETH
+- Wallet with Mantle Sepolia MNT
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/sideshiftai/mntlpulse-app.git
-cd mntlpulse-app
+git clone https://github.com/mantlepulse/mntlpulse.git
+cd mntlpulse/frontend
 
 # Install dependencies
 npm install
@@ -104,8 +104,8 @@ npm run dev
 NEXT_PUBLIC_API_URL=http://localhost:3001
 
 # Blockchain
-NEXT_PUBLIC_CHAIN_ID=84532
-NEXT_PUBLIC_POLLS_CONTRACT_BASE_SEPOLIA=0xa3713739c39419aA1c6daf349dB4342Be59b9142
+NEXT_PUBLIC_CHAIN_ID=5003
+NEXT_PUBLIC_POLLS_CONTRACT_MANTLE_SEPOLIA=0xe517e9c476D7F259228C94Dc24B0731E097E9541
 
 # WalletConnect
 NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
@@ -113,25 +113,23 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
 
 ## Contract Addresses
 
-### Base Mainnet (Chain ID: 8453)
+### Mantle Mainnet (Chain ID: 5000)
 | Contract | Type | Address |
 |----------|------|---------|
-| PollsContract | Proxy | `0x347523632Ae55D6Da81Da0799f9bd5b3FDd54C6B` |
-| PULSE Token | ERC20 | `0x1b684A60309b0916C77834d62d117d306171FDFE` |
-| StakingContract | Proxy | `0xC84377d58747423E1a07505512Adf99A90F86051` |
-| PremiumContract | Proxy | `0x69353b25FdAE19d5Bb40D173193AFa34f02da97A` |
-| DirectTokenSale | Standard | `0xba6Ae648738969A66e7Fc014fc871E41827e7734` |
+| PollsContract | Proxy | *Not deployed yet* |
+| PULSE Token | ERC20 | *Not deployed yet* |
+| StakingContract | Proxy | *Not deployed yet* |
+| PremiumContract | Proxy | *Not deployed yet* |
+| DirectTokenSale | Standard | *Not deployed yet* |
 
-### Base Sepolia Testnet (Chain ID: 84532)
+### Mantle Sepolia Testnet (Chain ID: 5003)
 | Contract | Type | Address |
 |----------|------|---------|
-| PollsContract | Proxy | `0xdfb6881ad34F26D57c3146d335848EDba21dFb6f` |
-| PULSE Token | ERC20 | `0x19821658D5798976152146d1c1882047670B898c` |
-| StakingContract | Proxy | `0xAc8BA012138c9e8bEdF7BbbeD408105EB195Daaf` |
-| PremiumContract | Proxy | `0xDC6E8482A3292BEd6e86b73B6a39abD60076165F` |
-| DirectTokenSale | Standard | `0x434d0fDd72AA670a229294E93D0933Ea685802fd` |
-
-> See [WAVE3_FINAL.md](./WAVE3_FINAL.md) for complete contract addresses including implementations.
+| PollsContract | Proxy | `0xe517e9c476D7F259228C94Dc24B0731E097E9541` |
+| PULSE Token | ERC20 | `0xa3713739c39419aA1c6daf349dB4342Be59b9142` |
+| StakingContract | Proxy | `0x2828b211A6e8c9c4F5736CeB6c67Df1614967d7E` |
+| PremiumContract | Proxy | `0x0D68DC1cBa2c1b663f38604D52B293EDcB96654b` |
+| DirectTokenSale | Standard | `0x1036eC70B447346d555d85D611cd3e7f6B2ECb9A` |
 
 ## Documentation
 
@@ -246,9 +244,8 @@ npm run lint         # Run ESLint
 
 ## Live URLs
 
-- **Demo Site:** https://sspulse.vercel.app/
-- **Demo IDO:** https://baseido.vercel.app/
-- **API:** https://mntlpulse-api.onrender.com
+- **Demo Site:** https://mntlpulse.vercel.app/
+- **Subgraph:** https://subgraph-api.mantle.xyz (Ormi's 0xGraph)
 
 ## Contributing
 
@@ -264,8 +261,8 @@ ISC
 
 ## Contributors
 
-- SideShift AI Team
+- Mantle Pulse Team
 
 ---
 
-*Built for the Akindo WaveHack Hackathon*
+*A decentralized and incentivized polls platform built on Mantle*
