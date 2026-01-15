@@ -25,14 +25,19 @@ interface ClaimableReward {
   totalFunding: bigint
   claimableAmount: string
   totalParticipants: number
+  tokenSymbol?: string
+  tokenDecimals?: number
+  hasClaimed?: boolean
+  status?: string
 }
 
 interface ClaimableRewardsListProps {
   rewards: ClaimableReward[]
   isLoading?: boolean
+  onClaimSuccess?: () => void
 }
 
-export function ClaimableRewardsList({ rewards, isLoading = false }: ClaimableRewardsListProps) {
+export function ClaimableRewardsList({ rewards, isLoading = false, onClaimSuccess }: ClaimableRewardsListProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"amount" | "expiration" | "recent">("amount")
 
@@ -117,7 +122,7 @@ export function ClaimableRewardsList({ rewards, isLoading = false }: ClaimableRe
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {filteredAndSortedRewards.map((reward) => (
-            <RewardCard key={Number(reward.id)} poll={reward} />
+            <RewardCard key={Number(reward.id)} poll={reward} onClaimSuccess={onClaimSuccess} />
           ))}
         </div>
       )}

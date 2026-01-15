@@ -415,3 +415,93 @@ export const GET_CLOSED_POLLS_BY_CREATOR = gql`
     }
   }
 `
+
+/**
+ * Get polls that a user has voted on with full poll details
+ * Used for participant dashboard to show claimable rewards
+ */
+export const GET_POLLS_VOTED_BY_USER = gql`
+  query GetPollsVotedByUser(
+    $user: Bytes!
+    $first: Int = 100
+    $skip: Int = 0
+  ) {
+    votes(
+      first: $first
+      skip: $skip
+      where: { voter: $user }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      poll {
+        id
+        pollId
+        question
+        options
+        votes
+        endTime
+        isActive
+        creator {
+          id
+        }
+        totalFunding
+        totalFundingAmount
+        fundingToken {
+          id
+          symbol
+          decimals
+        }
+        voteCount
+        voterCount
+        distributionMode
+        fundingType
+        status
+        createdAt
+        votingType
+      }
+      optionIndex
+      timestamp
+      transactionHash
+    }
+  }
+`
+
+/**
+ * Get distributions (claims) received by a user
+ * Used for claim history in participant dashboard
+ */
+export const GET_USER_CLAIMS = gql`
+  query GetUserClaims(
+    $user: Bytes!
+    $first: Int = 100
+    $skip: Int = 0
+  ) {
+    distributions(
+      first: $first
+      skip: $skip
+      where: { recipient: $user, eventType: CLAIMED }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      poll {
+        id
+        pollId
+        question
+      }
+      recipient {
+        id
+      }
+      token {
+        id
+        symbol
+        decimals
+      }
+      amount
+      eventType
+      timestamp
+      transactionHash
+    }
+  }
+`

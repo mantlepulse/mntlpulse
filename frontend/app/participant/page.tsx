@@ -5,8 +5,8 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAccount, useChainId } from "wagmi"
+import { useState } from "react"
+import { useAccount } from "wagmi"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Vote, Sparkles, ChevronRight, Clock, Users, Coins, Target, Trophy, ArrowRight, ListChecks } from "lucide-react"
 import { ParticipantBreadcrumb } from "@/components/participant/participant-breadcrumb"
@@ -24,27 +24,21 @@ import { useAvailableQuests } from "@/hooks/use-creator-quests"
 import { formatRewardDisplay } from "@/lib/utils/format-reward"
 import { QuestActionDialog } from "@/components/participant/quests/quest-action-dialog"
 import type { CreatorQuestWithParticipation } from "@/lib/api/creator-quests-client"
-import {
-  fetchParticipantRewards,
-  fetchParticipantStats,
-  fetchClaimHistory,
-} from "@/lib/api/participant"
+import { useParticipantRewards } from "@/hooks/use-participant-rewards"
 import { useActiveQuestionnaires, useQuestionnaireProgress, type Questionnaire } from "@/hooks/use-questionnaires"
 
 export default function ParticipantPage() {
   const { address, isConnected } = useAccount()
-  const chainId = useChainId()
   const router = useRouter()
 
-  const [stats, setStats] = useState({
-    totalClaimable: "0.00 ETH",
-    pollsParticipated: 0,
-    totalClaimed: "0.00 ETH",
-    pendingClaims: 0,
-  })
-  const [rewards, setRewards] = useState<any[]>([])
-  const [claimHistory, setClaimHistory] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // Use the participant rewards hook to fetch data from subgraph and contract
+  const {
+    rewards,
+    claimHistory,
+    stats,
+    isLoading: rewardsLoading,
+    refetch: refetchRewards,
+  } = useParticipantRewards()
 
   // Fetch active polls (limit to 3 for dashboard preview)
   const { polls: activePolls, loading: pollsLoading } = usePollsData({ pageSize: 3 })
@@ -78,33 +72,8 @@ export default function ParticipantPage() {
     setQuestDialogOpen(false)
   }
 
-  useEffect(() => {
-    async function loadData() {
-      if (!address || !chainId) {
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        const [statsData, rewardsData, historyData] = await Promise.all([
-          fetchParticipantStats(address, chainId),
-          fetchParticipantRewards(address, chainId),
-          fetchClaimHistory(address, chainId),
-        ])
-
-        setStats(statsData)
-        setRewards(rewardsData)
-        setClaimHistory(historyData)
-      } catch (error) {
-        console.error("Error loading participant data:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadData()
-  }, [address, chainId])
+  // Combined loading state
+  const isLoading = rewardsLoading
 
   // Show wallet connection warning if not connected
   if (!isConnected) {
@@ -375,7 +344,7 @@ export default function ParticipantPage() {
             </p>
           </div>
 
-          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} />
+          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} onClaimSuccess={refetchRewards} />
         </div>
 
         {/* Claim History Section */}
