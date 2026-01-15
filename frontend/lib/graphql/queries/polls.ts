@@ -352,6 +352,11 @@ export const GET_POLLS_BY_CREATOR = gql`
       }
       totalFunding
       totalFundingAmount
+      fundingToken {
+        id
+        symbol
+        decimals
+      }
       voteCount
       voterCount
       distributionMode

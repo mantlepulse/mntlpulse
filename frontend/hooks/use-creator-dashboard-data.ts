@@ -22,7 +22,7 @@ export interface CreatorDashboardStats {
   activePolls: number
   endedPolls: number
   totalResponses: number
-  totalFunded: string // Formatted ETH string
+  totalFunded: string // Formatted token amount string
   pendingDistributions: number
 }
 
@@ -85,6 +85,10 @@ function transformPoll(poll: SubgraphCreatorPoll): CreatorPoll {
   const votes = poll.votes.map(v => BigInt(v))
   const totalVotes = votes.reduce((sum, v) => sum + v, BigInt(0))
 
+  // Extract funding token info from nested object
+  const fundingTokenAddress = poll.fundingToken?.id || undefined
+  const fundingTokenSymbol = poll.fundingToken?.symbol || 'PULSE'
+
   return {
     id: poll.id,
     pollId: parseInt(poll.pollId, 10),
@@ -102,6 +106,8 @@ function transformPoll(poll: SubgraphCreatorPoll): CreatorPoll {
     fundingType: fundingTypeMap[poll.fundingType] ?? 'none',
     status: statusMap[poll.status] ?? 'active',
     createdAt: new Date(parseInt(poll.createdAt, 10) * 1000),
+    fundingToken: fundingTokenAddress,
+    fundingTokenSymbol,
   }
 }
 
@@ -166,7 +172,7 @@ export function useCreatorDashboardData(
       (sum, poll) => sum + poll.totalFundingAmount,
       BigInt(0)
     )
-    const totalFunded = `${parseFloat(formatEther(totalFundedWei)).toFixed(4)} ETH`
+    const totalFunded = `${parseFloat(formatEther(totalFundedWei)).toFixed(4)} tokens`
 
     // Pending distributions = polls that have ended with funding but rewards not claimed
     // A poll has pending distributions if:

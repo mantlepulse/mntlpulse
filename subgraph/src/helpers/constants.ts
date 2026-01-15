@@ -11,11 +11,17 @@ export const SECONDS_PER_DAY = BigInt.fromI32(86400)
 // Global stats singleton ID
 export const GLOBAL_STATS_ID = Bytes.fromHexString('0x676c6f62616c') // "global" in hex
 
-// ETH token representation
-export const ETH_ADDRESS = Address.fromString('0x0000000000000000000000000000000000000000')
-export const ETH_SYMBOL = 'ETH'
-export const ETH_NAME = 'Ether'
-export const ETH_DECIMALS = 18
+// Native token representation (MNT on Mantle)
+export const NATIVE_TOKEN_ADDRESS = Address.fromString('0x0000000000000000000000000000000000000000')
+export const NATIVE_TOKEN_SYMBOL = 'MNT'
+export const NATIVE_TOKEN_NAME = 'Mantle'
+export const NATIVE_TOKEN_DECIMALS = 18
+
+// Legacy aliases for compatibility
+export const ETH_ADDRESS = NATIVE_TOKEN_ADDRESS
+export const ETH_SYMBOL = NATIVE_TOKEN_SYMBOL
+export const ETH_NAME = NATIVE_TOKEN_NAME
+export const ETH_DECIMALS = NATIVE_TOKEN_DECIMALS
 
 // Distribution mode enum mapping
 export const DISTRIBUTION_MODE_MANUAL_PULL = 'MANUAL_PULL'
