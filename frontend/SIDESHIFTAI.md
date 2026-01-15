@@ -2,7 +2,7 @@
 
 ## Overview
 
-BasePulse integrates with [SideShift.ai](https://sideshift.ai) to enable cryptocurrency conversion for two primary use cases:
+Mantle Pulse integrates with [SideShift.ai](https://sideshift.ai) to enable cryptocurrency conversion for two primary use cases:
 
 1. **Fund Polls with Any Crypto** - Users can fund polls using Bitcoin, USDT, or 100+ other cryptocurrencies, which are automatically converted to ETH/Base network tokens
 2. **Claim Rewards in Preferred Crypto** - Poll participants can claim their rewards in their preferred cryptocurrency instead of receiving ETH
@@ -459,7 +459,7 @@ Poll ended, user has 0.5 ETH rewards
 NEXT_PUBLIC_API_URL=http://localhost:3001
 
 # For production
-# NEXT_PUBLIC_API_URL=https://api.basepulse.com
+# NEXT_PUBLIC_API_URL=https://api.mntlpulse.com
 
 # Network Configuration
 NEXT_PUBLIC_CHAIN_ID=8453                  # Base Mainnet
@@ -736,11 +736,11 @@ toast({
 
 ```bash
 # Start backend API first
-cd ../basepulse-api
+cd ../mntlpulse-api
 npm run dev
 
 # Start frontend
-cd basepulse-app
+cd mntlpulse-app
 npm run dev
 
 # Open http://localhost:3000
@@ -918,7 +918,7 @@ const canClaim = poll.endTime < Date.now();
 ## Support Resources
 
 ### Internal Documentation
-- **Backend Integration:** `../basepulse-api/SIDESHIFTAI.md`
+- **Backend Integration:** `../mntlpulse-api/SIDESHIFTAI.md`
 - **Usage Guide:** `SIDESHIFT_USAGE.md`
 - **Integration Status:** `FRONTEND_INTEGRATION_COMPLETE.md`
 
@@ -930,7 +930,7 @@ const canClaim = poll.endTime < Date.now();
 ### Getting Help
 
 **Backend Issues:**
-- Check `basepulse-api` logs
+- Check `mntlpulse-api` logs
 - Verify `NEXT_PUBLIC_API_URL` is correct
 - Ensure backend is running
 
@@ -962,4 +962,4 @@ The SideShift AI integration in the frontend is complete and production-ready wi
 - Shift history page
 - Analytics integration
 
-All components follow React best practices and integrate seamlessly with the BasePulse application architecture.
+All components follow React best practices and integrate seamlessly with the Mantle Pulse application architecture.

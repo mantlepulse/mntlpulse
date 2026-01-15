@@ -1,4 +1,4 @@
-# BasePulse (SideShift Pulse)
+# Mantle Pulse (SideShift Pulse)
 
 A decentralized polling platform built on Mantle blockchain with integrated cryptocurrency conversion via SideShift.ai. Create polls, engage communities through gamified quests, and distribute rewards transparently on-chain.
 
@@ -17,44 +17,44 @@ A decentralized polling platform built on Mantle blockchain with integrated cryp
 
 | Repository | Description | Link |
 |------------|-------------|------|
-| **basepulse-app** | Next.js frontend application (this repo) | [GitHub](https://github.com/sideshiftai/basepulse-app) |
-| **basepulse-api** | Express.js backend API server | [GitHub](https://github.com/sideshiftai/basepulse-api) |
-| **basepulse-contract** | Solidity smart contracts | [GitHub](https://github.com/sideshiftai/basepulse-contract) |
-| **basepulse-subgraph** | The Graph protocol subgraph | [GitHub](https://github.com/sideshiftai/basepulse-subgraph) |
-| **basepulse-cron** | Scheduled jobs and background tasks | [GitHub](https://github.com/sideshiftai/basepulse-cron) |
-| **basepulse-bridge** | Cross-chain bridge utilities | [GitHub](https://github.com/sideshiftai/basepulse-bridge) |
-| **basepulse-ido** | Token IDO platform | [GitHub](https://github.com/sideshiftai/basepulse-ido) |
+| **mntlpulse-app** | Next.js frontend application (this repo) | [GitHub](https://github.com/sideshiftai/mntlpulse-app) |
+| **mntlpulse-api** | Express.js backend API server | [GitHub](https://github.com/sideshiftai/mntlpulse-api) |
+| **mntlpulse-contract** | Solidity smart contracts | [GitHub](https://github.com/sideshiftai/mntlpulse-contract) |
+| **mntlpulse-subgraph** | The Graph protocol subgraph | [GitHub](https://github.com/sideshiftai/mntlpulse-subgraph) |
+| **mntlpulse-cron** | Scheduled jobs and background tasks | [GitHub](https://github.com/sideshiftai/mntlpulse-cron) |
+| **mntlpulse-bridge** | Cross-chain bridge utilities | [GitHub](https://github.com/sideshiftai/mntlpulse-bridge) |
+| **mntlpulse-ido** | Token IDO platform | [GitHub](https://github.com/sideshiftai/mntlpulse-ido) |
 
 ## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Frontend (Next.js)                       │
-│        basepulse-app - React + wagmi + TanStack Query       │
+│        mntlpulse-app - React + wagmi + TanStack Query       │
 └──────────────────────┬──────────────────────────────────────┘
                        │ HTTP REST API
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   Backend (Express.js)                       │
-│                      basepulse-api                           │
+│                      mntlpulse-api                           │
 └───────┬─────────────────────────────────────┬───────────────┘
         │                                     │
         ▼                                     ▼
 ┌────────────────┐    ┌─────────────────────────────────────┐
 │   PostgreSQL   │    │         Blockchain Layer             │
-│   (Drizzle)    │    │  basepulse-contract (Base Network)   │
+│   (Drizzle)    │    │  mntlpulse-contract (Base Network)   │
 └────────────────┘    └─────────────────────────────────────┘
                                     │
                                     ▼
                       ┌─────────────────────────┐
-                      │   basepulse-subgraph    │
+                      │   mntlpulse-subgraph    │
                       │   (The Graph Protocol)  │
                       └─────────────────────────┘
 ```
 
 ## Tech Stack
 
-### Frontend (basepulse-app)
+### Frontend (mntlpulse-app)
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS + shadcn/ui
@@ -62,13 +62,13 @@ A decentralized polling platform built on Mantle blockchain with integrated cryp
 - **State:** TanStack Query (React Query)
 - **Forms:** React Hook Form + Zod
 
-### Backend (basepulse-api)
+### Backend (mntlpulse-api)
 - **Runtime:** Node.js + Express.js
 - **ORM:** Drizzle ORM
 - **Database:** PostgreSQL
 - **Blockchain:** Viem
 
-### Smart Contracts (basepulse-contract)
+### Smart Contracts (mntlpulse-contract)
 - **Language:** Solidity ^0.8.20
 - **Framework:** Hardhat
 - **Pattern:** UUPS Upgradeable
@@ -84,8 +84,8 @@ A decentralized polling platform built on Mantle blockchain with integrated cryp
 
 ```bash
 # Clone the repository
-git clone https://github.com/sideshiftai/basepulse-app.git
-cd basepulse-app
+git clone https://github.com/sideshiftai/mntlpulse-app.git
+cd mntlpulse-app
 
 # Install dependencies
 npm install
@@ -174,7 +174,7 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
 ## Project Structure
 
 ```
-basepulse-app/
+mntlpulse-app/
 ├── app/                    # Next.js pages (App Router)
 │   ├── dapp/              # Main dApp pages
 │   ├── creator/           # Creator dashboard
@@ -248,7 +248,7 @@ npm run lint         # Run ESLint
 
 - **Demo Site:** https://sspulse.vercel.app/
 - **Demo IDO:** https://baseido.vercel.app/
-- **API:** https://basepulse-api.onrender.com
+- **API:** https://mntlpulse-api.onrender.com
 
 ## Contributing
 

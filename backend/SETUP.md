@@ -1,4 +1,4 @@
-# BasePulse API Setup Guide
+# Mantle Pulse API Setup Guide
 
 Complete guide for setting up and integrating the Sideshift AI backend.
 
@@ -184,7 +184,7 @@ GET /api/sideshift/poll/:pollId
 ### Install API Client
 
 ```bash
-# In basepulse-app directory
+# In mntlpulse-app directory
 npm install axios
 ```
 
@@ -367,7 +367,7 @@ Create `render.yaml`:
 ```yaml
 services:
   - type: web
-    name: basepulse-api
+    name: mntlpulse-api
     env: node
     buildCommand: npm install && npm run build
     startCommand: npm start

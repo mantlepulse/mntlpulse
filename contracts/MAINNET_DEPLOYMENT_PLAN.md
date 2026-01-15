@@ -19,7 +19,7 @@ This plan covers deploying the new Wave 3 contracts (StakingContract, PremiumSub
 
 ## Prerequisites
 
-### 1. Environment Variables (basepulse-contract/.env)
+### 1. Environment Variables (mntlpulse-contract/.env)
 
 ```bash
 # Required
@@ -39,7 +39,7 @@ BASE_MAINNET_RPC_URL=https://mainnet.base.org
 ### 3. Verify Deployer Balance
 
 ```bash
-cd /Users/east/workspace/sideshift/basepulse-contract
+cd /Users/east/workspace/sideshift/mntlpulse-contract
 npx hardhat run scripts/check-balance.ts --network base
 ```
 
@@ -50,7 +50,7 @@ npx hardhat run scripts/check-balance.ts --network base
 ### Step 1: Compile Contracts
 
 ```bash
-cd /Users/east/workspace/sideshift/basepulse-contract
+cd /Users/east/workspace/sideshift/mntlpulse-contract
 npx hardhat compile
 ```
 
@@ -131,7 +131,7 @@ npx hardhat verify --network base <PREMIUM_IMPLEMENTATION_ADDRESS>
 
 ### Step 7: Update Environment Variables
 
-Edit `/Users/east/workspace/sideshift/basepulse-app/.env.local`:
+Edit `/Users/east/workspace/sideshift/mntlpulse-app/.env.local`:
 
 ```bash
 # Update these with the NEW deployed proxy addresses:
@@ -147,7 +147,7 @@ NEXT_PUBLIC_PULSE_TOKEN_BASE_MAINNET=0x1b684A60309b0916C77834d62d117d306171FDFE
 
 ### Step 8: Update API Environment (if needed)
 
-Edit `/Users/east/workspace/sideshift/basepulse-api/.env`:
+Edit `/Users/east/workspace/sideshift/mntlpulse-api/.env`:
 
 ```bash
 # Add if not present:
@@ -158,7 +158,7 @@ PREMIUM_CONTRACT_BASE=<NEW_PREMIUM_PROXY_ADDRESS>
 ### Step 9: Rebuild and Deploy Frontend
 
 ```bash
-cd /Users/east/workspace/sideshift/basepulse-app
+cd /Users/east/workspace/sideshift/mntlpulse-app
 npm run build
 # Deploy to hosting (Vercel, etc.)
 ```
@@ -195,7 +195,7 @@ Look for:
 
 ```bash
 # Navigate to contract directory
-cd /Users/east/workspace/sideshift/basepulse-contract
+cd /Users/east/workspace/sideshift/mntlpulse-contract
 
 # Full deployment sequence (run in order)
 npx hardhat compile

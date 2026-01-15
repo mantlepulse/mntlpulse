@@ -1,6 +1,6 @@
-# BasePulse API
+# Mantle Pulse API
 
-Backend API for BasePulse - Handles Sideshift AI integration for cross-chain poll funding and reward claims.
+Backend API for Mantle Pulse - Handles Sideshift AI integration for cross-chain poll funding and reward claims.
 
 ## Features
 
@@ -13,7 +13,7 @@ Backend API for BasePulse - Handles Sideshift AI integration for cross-chain pol
 ## Architecture
 
 ```
-Frontend (basepulse-app) → Backend API (basepulse-api) → Sideshift AI
+Frontend (mntlpulse-app) → Backend API (mntlpulse-api) → Sideshift AI
                                 ↓
                          Smart Contract (PulseChain)
 ```

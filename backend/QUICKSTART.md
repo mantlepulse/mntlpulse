@@ -1,10 +1,10 @@
-# BasePulse API - Quick Start
+# Mantle Pulse API - Quick Start
 
 ## 🚀 Get Started in 2 Minutes
 
 ```bash
 # Navigate to API directory
-cd basepulse-api
+cd mntlpulse-api
 
 # Install dependencies (already done)
 npm install
@@ -28,7 +28,7 @@ curl http://localhost:3001/health
 ## 📁 Project Structure
 
 ```
-basepulse-api/
+mntlpulse-api/
 ├── src/
 │   ├── config/          # Environment & contract configuration
 │   │   ├── env.ts
