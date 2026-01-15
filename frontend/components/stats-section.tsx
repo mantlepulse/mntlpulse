@@ -16,18 +16,18 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-function formatETH(weiAmount: number): string {
-  const ethValue = Number(formatEther(BigInt(weiAmount)))
-  if (ethValue >= 1000) {
-    return `${(ethValue / 1000).toFixed(1)}K ETH`
+function formatTokenAmount(weiAmount: number): string {
+  const tokenValue = Number(formatEther(BigInt(weiAmount)))
+  if (tokenValue >= 1000) {
+    return `${(tokenValue / 1000).toFixed(1)}K PULSE`
   }
-  if (ethValue >= 1) {
-    return `${ethValue.toFixed(2)} ETH`
+  if (tokenValue >= 1) {
+    return `${tokenValue.toFixed(2)} PULSE`
   }
-  if (ethValue > 0) {
-    return `${ethValue.toFixed(4)} ETH`
+  if (tokenValue > 0) {
+    return `${tokenValue.toFixed(4)} PULSE`
   }
-  return "0 ETH"
+  return "0 PULSE"
 }
 
 function StatCardSkeleton() {
@@ -57,7 +57,7 @@ export function StatsSection() {
       description: "Transparent participation",
     },
     {
-      value: stats ? formatETH(stats.totalDistributions) : "0 ETH",
+      value: stats ? formatTokenAmount(stats.totalDistributions) : "0 PULSE",
       label: "Rewards Distributed",
       description: "Distributed to participants",
     },
@@ -77,7 +77,7 @@ export function StatsSection() {
               Trusted by communities worldwide
             </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground text-lg">
-              Join thousands of communities making decisions transparently on Base
+              Join thousands of communities making decisions transparently on Mantle
             </p>
           </div>
         </ScrollReveal>

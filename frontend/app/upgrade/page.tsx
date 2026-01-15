@@ -353,7 +353,7 @@ export default function UpgradePage() {
                     <div className="flex-1">
                       <p className="font-medium">Need testnet PULSE?</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Bridging is not available on testnet. To test premium features, please obtain testnet PULSE tokens from a faucet or switch to Base Mainnet.
+                        Bridging is not available on testnet. To test premium features, please obtain testnet PULSE tokens from a faucet or switch to Mantle Mainnet.
                       </p>
                     </div>
                   </div>
