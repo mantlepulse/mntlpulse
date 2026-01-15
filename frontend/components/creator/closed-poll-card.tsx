@@ -35,6 +35,7 @@ import { usePollFundingBreakdown } from "@/lib/contracts/polls-contract-utils"
 interface ClosedPollCardProps {
   poll: CreatorPoll
   chainId: number
+  connectedAddress?: string
   onWithdrawFunds: (pollId: bigint, recipient: string, tokens: string[]) => Promise<void>
   onDonateToTreasury?: (pollId: bigint, tokens: string[]) => Promise<void>
   onSetClaimDeadline?: (pollId: bigint, deadline: bigint) => Promise<void>
@@ -43,6 +44,7 @@ interface ClosedPollCardProps {
 export function ClosedPollCard({
   poll,
   chainId,
+  connectedAddress,
   onWithdrawFunds,
   onDonateToTreasury,
   onSetClaimDeadline,
@@ -50,7 +52,7 @@ export function ClosedPollCard({
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
   const [isDonateDialogOpen, setIsDonateDialogOpen] = useState(false)
   const [isGracePeriodDialogOpen, setIsGracePeriodDialogOpen] = useState(false)
-  const [recipient, setRecipient] = useState("")
+  const [recipient, setRecipient] = useState(connectedAddress || "")
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [isDonating, setIsDonating] = useState(false)
   const [isSettingGracePeriod, setIsSettingGracePeriod] = useState(false)

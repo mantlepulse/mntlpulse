@@ -677,6 +677,7 @@ export default function ManagePollsPage() {
                       key={poll.id}
                       poll={poll}
                       chainId={chainId}
+                      connectedAddress={address}
                       onWithdrawFunds={handleWithdrawFunds}
                       onDonateToTreasury={handleDonateToTreasury}
                       onSetClaimDeadline={handleSetClaimDeadline}
