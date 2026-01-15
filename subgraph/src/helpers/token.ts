@@ -3,14 +3,14 @@ import { Token, TokenStats } from '../../generated/schema'
 import {
   ZERO_ADDRESS,
   BIGINT_ZERO,
-  ETH_SYMBOL,
-  ETH_NAME,
-  ETH_DECIMALS,
+  NATIVE_TOKEN_SYMBOL,
+  NATIVE_TOKEN_NAME,
+  NATIVE_TOKEN_DECIMALS,
 } from './constants'
 
 /**
  * Get or create a Token entity
- * @param address Token address (0x0 for ETH)
+ * @param address Token address (0x0 for native token MNT)
  * @param timestamp Current timestamp
  * @param blockNumber Current block number
  * @returns Token entity
@@ -37,11 +37,11 @@ export function getOrCreateToken(
     token.lastSeenAt = timestamp
     token.lastSeenAtBlock = blockNumber
 
-    // Handle ETH (address 0x0) as special case
+    // Handle native token (address 0x0) as special case - MNT on Mantle
     if (address.equals(ZERO_ADDRESS)) {
-      token.symbol = ETH_SYMBOL
-      token.name = ETH_NAME
-      token.decimals = ETH_DECIMALS
+      token.symbol = NATIVE_TOKEN_SYMBOL
+      token.name = NATIVE_TOKEN_NAME
+      token.decimals = NATIVE_TOKEN_DECIMALS
     } else {
       // For ERC20 tokens, set placeholder values
       // In a production setup, you would call the token contract to get these values

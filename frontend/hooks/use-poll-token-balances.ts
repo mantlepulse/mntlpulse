@@ -15,12 +15,12 @@ export interface TokenBalance {
   symbol: string
 }
 
-// Common token addresses on Base
-const NATIVE_ETH = '0x0000000000000000000000000000000000000000' as Address
+// Native token address on Mantle
+const NATIVE_MNT = '0x0000000000000000000000000000000000000000' as Address
 
 // Token symbol mapping
 const TOKEN_SYMBOLS: Record<string, string> = {
-  '0x0000000000000000000000000000000000000000': 'ETH',
+  '0x0000000000000000000000000000000000000000': 'MNT',
   // Add more tokens as needed
 }
 
@@ -37,8 +37,8 @@ function getTokenSymbol(address: string): string {
  * @param tokens - Array of token addresses to check balances for
  */
 export function usePollTokenBalances(pollId: number, tokens?: Address[]) {
-  // Default to checking ETH if no tokens specified
-  const tokenList = tokens || [NATIVE_ETH]
+  // Default to checking MNT if no tokens specified
+  const tokenList = tokens || [NATIVE_MNT]
 
   // Fetch balance for each token
   const balanceQueries = tokenList.map((token) => {
@@ -97,8 +97,8 @@ export function usePollTokenBalancesFromFundings(pollId: number) {
     fundings.forEach((funding) => {
       uniqueTokens.add(funding.token as Address)
     })
-    // Always include ETH
-    uniqueTokens.add(NATIVE_ETH)
+    // Always include MNT
+    uniqueTokens.add(NATIVE_MNT)
     return Array.from(uniqueTokens)
   }, [fundings])
 

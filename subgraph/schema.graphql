@@ -269,7 +269,7 @@ type User @entity(immutable: false) {
 }
 
 type Token @entity(immutable: false) {
-  " Token address (0x0 for ETH) "
+  " Token address (0x0 for native MNT token) "
   id: Bytes!
 
   " Address as bytes "

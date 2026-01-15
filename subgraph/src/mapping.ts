@@ -56,6 +56,7 @@ import {
 import {
   BIGINT_ONE,
   BIGINT_ZERO,
+  ZERO_ADDRESS,
   DISTRIBUTION_MODE_MANUAL_PULL,
   DISTRIBUTION_MODE_MANUAL_PUSH,
   DISTRIBUTION_MODE_AUTOMATED,
@@ -176,12 +177,24 @@ export function handleVoted(event: Voted): void {
 
 /**
  * Handler for PollFunded event
- * Emitted when a poll receives funding (ETH or ERC20)
+ * Emitted when a poll receives funding (MNT or ERC20)
  */
 export function handlePollFunded(event: PollFunded): void {
   let pollId = event.params.pollId
   let tokenAddress = event.params.token
   let amount = event.params.amount
+
+  // Get or create poll
+  let poll = getOrCreatePoll(pollId)
+
+  // Update poll's fundingToken if it's still the zero address (default)
+  // This captures the actual funding token from the first funding event
+  if (poll.fundingToken.equals(ZERO_ADDRESS) && !tokenAddress.equals(ZERO_ADDRESS)) {
+    poll.fundingToken = tokenAddress
+    poll.updatedAt = event.block.timestamp
+    poll.updatedAtBlock = event.block.number
+    poll.save()
+  }
 
   // Create funding entity
   let fundingId = event.transaction.hash.concatI32(event.logIndex.toI32())
