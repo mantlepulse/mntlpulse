@@ -8,8 +8,8 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy:mantle-sepolia": "dotenv -- graph deploy mntlpulse-sepolia --node https://subgraph-api.mantle.xyz/deploy --ipfs https://subgraph-api.mantle.xyz/ipfs --deploy-key $ORMI_DEPLOY_KEY",
-    "deploy:mantle": "dotenv -- graph deploy mntlpulse-mainnet --node https://subgraph-api.mantle.xyz/deploy --ipfs https://subgraph-api.mantle.xyz/ipfs --deploy-key $ORMI_DEPLOY_KEY",
+    "deploy:mantle-sepolia": "graph deploy mntlpulse-sepolia --node https://subgraph-api.mantle.xyz/deploy --ipfs https://subgraph-api.mantle.xyz/ipfs --deploy-key 8SL0O8DCAQ715L4U9LOOV4B8N",
+    "deploy:mantle": "graph deploy mntlpulse-mainnet --node https://subgraph-api.mantle.xyz/deploy --ipfs https://subgraph-api.mantle.xyz/ipfs --deploy-key 8SL0O8DCAQ715L4U9LOOV4B8N",
     "create:local": "graph create --node http://localhost:8020/ mntlpulse",
     "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 mntlpulse",
     "test": "graph test"

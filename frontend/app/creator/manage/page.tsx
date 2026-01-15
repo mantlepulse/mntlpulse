@@ -236,6 +236,14 @@ export default function ManagePollsPage() {
     }
   }, [isDonateSuccess])
 
+  // Refetch when claim deadline is set
+  useEffect(() => {
+    if (isClaimDeadlineSuccess) {
+      toast.success("Claim deadline set successfully!")
+      refetchClosedPolls()
+    }
+  }, [isClaimDeadlineSuccess])
+
   // Handle title update
   const handleTitleUpdate = (pollId: bigint, newTitle: string) => {
     setDisplayTitles(prev => ({

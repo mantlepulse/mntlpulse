@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
+import { Address, BigInt } from '@graphprotocol/graph-ts'
 import { Token, TokenStats } from '../../generated/schema'
 import {
   ZERO_ADDRESS,
@@ -7,6 +7,11 @@ import {
   NATIVE_TOKEN_NAME,
   NATIVE_TOKEN_DECIMALS,
 } from './constants'
+import {
+  PULSE_TOKEN_ADDRESSES,
+  USDC_TOKEN_ADDRESSES,
+  getKnownTokenInfo,
+} from './token-registry'
 
 /**
  * Get or create a Token entity
@@ -43,11 +48,18 @@ export function getOrCreateToken(
       token.name = NATIVE_TOKEN_NAME
       token.decimals = NATIVE_TOKEN_DECIMALS
     } else {
-      // For ERC20 tokens, set placeholder values
-      // In a production setup, you would call the token contract to get these values
-      token.symbol = 'UNKNOWN'
-      token.name = 'Unknown Token'
-      token.decimals = 18
+      // Check if it's a known token from registry
+      let knownInfo = getKnownTokenInfo(address)
+      if (knownInfo !== null) {
+        token.symbol = knownInfo.symbol
+        token.name = knownInfo.name
+        token.decimals = knownInfo.decimals
+      } else {
+        // For unknown ERC20 tokens, set placeholder values
+        token.symbol = 'UNKNOWN'
+        token.name = 'Unknown Token'
+        token.decimals = 18
+      }
     }
 
     token.save()
