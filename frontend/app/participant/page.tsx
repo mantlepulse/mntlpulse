@@ -117,6 +117,21 @@ export default function ParticipantPage() {
           isLoading={isLoading}
         />
 
+        {/* Claimable Rewards Section */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Coins className="h-6 w-6 text-primary" />
+              Claimable Rewards
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Rewards available to claim from polls you participated in
+            </p>
+          </div>
+
+          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} onClaimSuccess={refetchRewards} />
+        </div>
+
         {/* Active Polls Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -330,21 +345,6 @@ export default function ParticipantPage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Claimable Rewards Section */}
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Coins className="h-6 w-6 text-primary" />
-              Claimable Rewards
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Rewards available to claim from polls you participated in
-            </p>
-          </div>
-
-          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} onClaimSuccess={refetchRewards} />
         </div>
 
         {/* Claim History Section */}
