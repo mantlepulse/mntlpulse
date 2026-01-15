@@ -26,9 +26,10 @@ interface RewardCardProps {
     tokenSymbol?: string
     tokenDecimals?: number
   }
+  onClaimSuccess?: () => void
 }
 
-export function RewardCard({ poll }: RewardCardProps) {
+export function RewardCard({ poll, onClaimSuccess }: RewardCardProps) {
   const [showClaimDialog, setShowClaimDialog] = useState(false)
   const endDate = new Date(Number(poll.endTime) * 1000)
   const tokenSymbol = poll.tokenSymbol || 'PULSE'
@@ -156,13 +157,14 @@ export function RewardCard({ poll }: RewardCardProps) {
       </Card>
 
       {/* Claim Dialog */}
-      {showClaimDialog && (
-        <ClaimRewardsDialog
-          pollId={poll.id}
-          estimatedReward={poll.claimableAmount}
-          onClose={() => setShowClaimDialog(false)}
-        />
-      )}
+      <ClaimRewardsDialog
+        pollId={String(poll.id)}
+        rewardAmount={poll.claimableAmount}
+        rewardToken={tokenSymbol}
+        open={showClaimDialog}
+        onOpenChange={setShowClaimDialog}
+        onSuccess={onClaimSuccess}
+      />
     </>
   )
 }

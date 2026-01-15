@@ -344,7 +344,7 @@ export default function ParticipantPage() {
             </p>
           </div>
 
-          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} />
+          <ClaimableRewardsList rewards={rewards} isLoading={isLoading} onClaimSuccess={refetchRewards} />
         </div>
 
         {/* Claim History Section */}
